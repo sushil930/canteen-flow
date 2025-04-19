@@ -2,7 +2,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useOrder } from '../context/OrderContext';
-import { ShoppingBag, Settings } from 'lucide-react';
+import { ShoppingBag } from 'lucide-react';
 
 const Header: React.FC = () => {
   const { orderItems } = useOrder();
@@ -33,14 +33,6 @@ const Header: React.FC = () => {
               <span className="font-medium">{itemCount}</span>
             </Link>
           )}
-          
-          <Link
-            to="/admin/login"
-            className="flex items-center space-x-1 bg-gray-100 text-gray-600 px-3 py-2 rounded-full hover:bg-gray-200 transition-colors"
-          >
-            <Settings size={20} />
-            <span className="font-medium">Admin</span>
-          </Link>
         </div>
       </div>
     </header>
@@ -48,3 +40,4 @@ const Header: React.FC = () => {
 };
 
 export default Header;
+
