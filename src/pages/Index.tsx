@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Utensils, ShoppingBag } from 'lucide-react';
 import { useOrder } from '../context/OrderContext';
@@ -7,15 +7,18 @@ import { useOrder } from '../context/OrderContext';
 const Index = () => {
   const navigate = useNavigate();
   const { setOrderType } = useOrder();
+  const [clickedButton, setClickedButton] = useState<null | 'dine-in' | 'pickup'>(null);
   
   const handleOrderTypeSelection = (type: 'dine-in' | 'pickup') => {
-    setOrderType(type);
-    
-    if (type === 'dine-in') {
-      navigate('/table-selection');
-    } else {
-      navigate('/menu');
-    }
+    setClickedButton(type);
+    setTimeout(() => {
+      setOrderType(type);
+      if (type === 'dine-in') {
+        navigate('/table-selection');
+      } else {
+        navigate('/menu');
+      }
+    }, 200); // Animation duration before navigation
   };
   
   return (
@@ -33,7 +36,9 @@ const Index = () => {
         <div className="w-full max-w-md space-y-6">
           <button
             onClick={() => handleOrderTypeSelection('dine-in')}
-            className="w-full flex items-center justify-between p-6 bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow duration-200"
+            className={`w-full flex items-center justify-between p-6 bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow duration-200 transform ${
+              clickedButton === 'dine-in' ? 'animate-scale-in' : ''
+            }`}
           >
             <div className="flex items-center">
               <div className="bg-canteen-primary/10 p-3 rounded-full mr-4">
@@ -49,7 +54,9 @@ const Index = () => {
           
           <button
             onClick={() => handleOrderTypeSelection('pickup')}
-            className="w-full flex items-center justify-between p-6 bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow duration-200"
+            className={`w-full flex items-center justify-between p-6 bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow duration-200 transform ${
+              clickedButton === 'pickup' ? 'animate-scale-in' : ''
+            }`}
           >
             <div className="flex items-center">
               <div className="bg-canteen-primary/10 p-3 rounded-full mr-4">
