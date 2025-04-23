@@ -1,185 +1,142 @@
-
-import React, { useState } from 'react';
+import React, { useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, CheckCircle, Loader2 } from 'lucide-react';
-import { useOrder } from '../context/OrderContext';
-import { processPayment, generateOrderId } from '../data/mockData';
-import Header from '../components/Header';
+import { useMutation } from '@tanstack/react-query';
+import { OrderContext } from '@/contexts/OrderContext';
+import { apiClient } from '@/lib/api';
+import { useToast } from '@/components/ui/use-toast';
+import { Button } from '@/components/ui/button';
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { formatCurrency } from '@/lib/utils';
+import Header from '@/components/Header';
+
+// Type for the order created response (matches OrderSerializer)
+interface ApiOrder {
+  id: number;
+  // Add other fields from OrderSerializer if needed
+}
 
 const Payment = () => {
   const navigate = useNavigate();
-  const { orderItems, totalPrice, orderType } = useOrder();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  
-  // Mock customer info fields
-  const [email, setEmail] = useState('');
-  const [name, setName] = useState('');
-  
-  // Calculate final amount
-  const finalAmount = totalPrice * 1.075; // Including tax
-  
-  const handleBack = () => {
-    navigate('/order-summary');
-  };
-  
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!email || !name) {
-      setError('Please fill in all fields');
-      return;
-    }
-    
-    setLoading(true);
-    setError(null);
-    
-    try {
-      // Simulate payment processing
-      const result = await processPayment(finalAmount);
-      
-      if (result.success) {
-        // Generate a random order ID
-        const orderId = generateOrderId();
-        // Store in sessionStorage for order tracking
-        sessionStorage.setItem('currentOrderId', orderId);
-        
-        // Redirect to confirmation
-        navigate('/order-confirmation');
-      } else {
-        setError(result.message);
+  const { toast } = useToast();
+  const { items, getTotalPrice, clearCart, selectedCanteenId, tableNumber } = useContext(OrderContext);
+
+  const placeOrderMutation = useMutation<ApiOrder, Error, { notes: string }>({
+    mutationFn: async ({ notes }) => {
+      if (!selectedCanteenId) {
+        toast({ title: "Error", description: "No canteen selected.", variant: "destructive" });
+        navigate('/');
+        throw new Error("Canteen ID is missing");
       }
-    } catch (err) {
-      setError('An unexpected error occurred');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
+      if (items.length === 0) {
+        toast({ title: "Error", description: "Your cart is empty.", variant: "destructive" });
+        navigate('/menu');
+        throw new Error("Cart is empty");
+      }
+
+      const orderPayload = {
+        canteen: selectedCanteenId,
+        table_number: tableNumber,
+        notes: notes,
+        items: items.map(item => ({
+          menu_item_id: item.menuItemId,
+          quantity: item.quantity,
+        })),
+      };
+
+      return apiClient<ApiOrder>('/orders/', {
+        method: 'POST',
+        body: JSON.stringify(orderPayload),
+      });
+    },
+    onSuccess: (data) => {
+      toast({ title: "Order Placed Successfully!", description: `Your order ID is ${data.id}` });
+      const orderId = data.id;
+      clearCart();
+      sessionStorage.setItem('lastOrderId', orderId.toString());
+      navigate(`/order-confirmation/${orderId}`);
+    },
+    onError: (error) => {
+      toast({
+        title: "Order Failed",
+        description: error.message || "Could not place order.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handlePlaceOrder = () => {
+    const notes = (document.getElementById('orderNotes') as HTMLTextAreaElement)?.value || '';
+    placeOrderMutation.mutate({ notes });
   };
-  
-  // Return to menu if cart is empty
-  if (orderItems.length === 0) {
-    navigate('/menu');
-    return null;
+
+  if (items.length === 0) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center">
+        <Header />
+        <p className="p-4 text-lg">Your cart is empty. Please add items from the menu.</p>
+        <Button onClick={() => navigate('/menu')}>Go to Menu</Button>
+      </div>
+    );
   }
-  
+
+  const totalPrice = getTotalPrice();
+
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-950">
       <Header />
-      
-      <main className="flex-grow canteen-container py-6 animate-fade-in">
-        <button 
-          onClick={handleBack}
-          className="flex items-center text-gray-600 mb-6"
-          disabled={loading}
-        >
-          <ArrowLeft size={18} className="mr-1" />
-          <span>Back to Order</span>
-        </button>
-        
-        <h1 className="text-2xl font-bold mb-6">Payment</h1>
-        
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          {/* Order summary */}
-          <div className="mb-6 pb-6 border-b border-gray-200">
-            <h2 className="font-semibold text-lg mb-3">Order Summary</h2>
-            <div className="flex justify-between font-bold">
-              <span>Total to Pay:</span>
-              <span>${finalAmount.toFixed(2)}</span>
-            </div>
-            <div className="text-xs text-gray-500 mt-1 text-right">
-              (Including tax)
-            </div>
-            
-            {orderType === 'pickup' && (
-              <div className="bg-canteen-secondary/30 p-3 rounded mt-4 text-sm">
-                <p className="font-medium">Your order will be available for pickup at the counter.</p>
-              </div>
-            )}
-          </div>
-          
-          {/* Payment form */}
-          <form onSubmit={handleSubmit}>
-            <h2 className="font-semibold text-lg mb-3">Your Information</h2>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1" htmlFor="name">
-                  Name
-                </label>
-                <input
-                  type="text"
-                  id="name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full p-2 border border-gray-300 rounded"
-                  placeholder="Enter your name"
-                  disabled={loading}
-                  required
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-1" htmlFor="email">
-                  Email (for receipt)
-                </label>
-                <input
-                  type="email"
-                  id="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full p-2 border border-gray-300 rounded"
-                  placeholder="youremail@example.com"
-                  disabled={loading}
-                  required
-                />
-              </div>
-              
-              {/* Mock card input (in a real app, use a payment processor component) */}
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  Payment Method
-                </label>
-                <div className="p-3 border border-gray-300 rounded bg-gray-50">
-                  <p className="text-center text-gray-500">
-                    This is a demo. No real payment will be processed.
-                  </p>
+      <main className="flex-grow container mx-auto px-4 py-8 max-w-3xl">
+        <Card className="w-full">
+          <CardHeader>
+            <CardTitle className="text-2xl">Confirm Your Order</CardTitle>
+            <CardDescription>Review your items and provide any special instructions.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-3">
+              <h3 className="font-semibold">Order Summary</h3>
+              {items.map((item) => (
+                <div key={item.menuItemId} className="flex justify-between items-center text-sm">
+                  <span>{item.name} x {item.quantity}</span>
+                  <span>{formatCurrency(item.price * item.quantity)}</span>
                 </div>
+              ))}
+              <Separator />
+              {tableNumber && (
+                <div className="flex justify-between font-medium">
+                  <span>Table Number:</span>
+                  <span>{tableNumber}</span>
+                </div>
+              )}
+              <div className="flex justify-between font-semibold text-lg">
+                <span>Total</span>
+                <span>{formatCurrency(totalPrice)}</span>
               </div>
             </div>
-            
-            {error && (
-              <div className="mt-4 p-3 bg-red-100 text-red-800 rounded">
-                {error}
-              </div>
-            )}
-            
-            <div className="mt-6">
-              <button
-                type="submit"
-                className="w-full primary-button flex items-center justify-center"
-                disabled={loading}
-              >
-                {loading ? (
-                  <>
-                    <Loader2 size={20} className="mr-2 animate-spin" />
-                    <span>Processing...</span>
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle size={20} className="mr-2" />
-                    <span>Pay ${finalAmount.toFixed(2)}</span>
-                  </>
-                )}
-              </button>
+
+            <Separator />
+
+            <div className="space-y-2">
+              <label htmlFor="orderNotes" className="font-semibold">Order Notes</label>
+              <Textarea
+                id="orderNotes"
+                placeholder="Any special requests? E.g., less spicy, extra sauce..."
+              />
             </div>
-          </form>
-        </div>
+          </CardContent>
+          <CardFooter>
+            <Button
+              className="w-full"
+              size="lg"
+              onClick={handlePlaceOrder}
+              disabled={placeOrderMutation.isPending}
+            >
+              {placeOrderMutation.isPending ? 'Placing Order...' : 'Place Order'}
+            </Button>
+          </CardFooter>
+        </Card>
       </main>
-      
-      <footer className="text-center p-4 text-sm text-gray-500">
-        <p>© 2025 Canteen. All rights reserved.</p>
-      </footer>
     </div>
   );
 };

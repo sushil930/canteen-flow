@@ -1,99 +1,133 @@
-
-import React, { useState } from 'react';
-import { 
+import React, { useState, useMemo } from 'react';
+import {
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableHeader,
-  TableRow 
+  TableRow
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, Filter } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Search, Filter, Loader2 } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { apiClient } from '@/lib/api';
+import { useToast } from "@/components/ui/use-toast";
+import { format, parseISO } from 'date-fns';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { formatCurrency } from "@/lib/utils";
 
-// Mock data for orders
-const mockOrders = [
-  { 
-    id: 'ORD-001', 
-    items: ['Classic Burger x2', 'French Fries x1', 'Cola x2'],
-    table: 'Table 3', 
-    total: 24.97, 
-    status: 'Preparing', 
-    timestamp: '2025-04-11T12:30:00Z'
-  },
-  { 
-    id: 'ORD-002', 
-    items: ['Veggie Burger x1', 'Onion Rings x1', 'Lemonade x1'],
-    table: 'Table 5', 
-    total: 19.47, 
-    status: 'Delivered', 
-    timestamp: '2025-04-11T12:15:00Z'
-  },
-  { 
-    id: 'ORD-003', 
-    items: ['Cheese Burger x1', 'Caesar Salad x1', 'Chocolate Shake x1'],
-    table: 'Pickup', 
-    total: 22.97, 
-    status: 'Ready for Pickup', 
-    timestamp: '2025-04-11T12:10:00Z'
-  },
-  { 
-    id: 'ORD-004', 
-    items: ['Greek Salad x2', 'Chicken Wrap x1'],
-    table: 'Table 1', 
-    total: 25.97, 
-    status: 'Pending', 
-    timestamp: '2025-04-11T12:40:00Z'
-  },
-  { 
-    id: 'ORD-005', 
-    items: ['Veggie Wrap x2', 'Lemonade x2'],
-    table: 'Pickup', 
-    total: 18.96, 
-    status: 'Preparing', 
-    timestamp: '2025-04-11T12:35:00Z'
-  }
+// Type for order data from API (matches OrderSerializer)
+interface ApiAdminOrderItem {
+  id: number;
+  menu_item: { id: number; name: string; }; // Simplified nested item
+  quantity: number;
+  price_at_time_of_order: string;
+}
+
+// EXPORT this interface
+export interface ApiAdminOrder {
+  id: number;
+  customer: { username: string; email: string; };
+  canteen: { id: number; name: string; };
+  created_at: string;
+  updated_at: string;
+  status: 'PENDING' | 'PROCESSING' | 'READY' | 'COMPLETED' | 'CANCELLED';
+  total_price: string;
+  notes: string | null;
+  table_number: string | null;
+  items: {
+    id: number;
+    menu_item: { id: number; name: string; price: string; };
+    quantity: number;
+    price: string;
+  }[];
+}
+
+// Available statuses for dropdown/filtering
+const ORDER_STATUSES: ApiAdminOrder['status'][] = [
+  'PENDING', 'PROCESSING', 'READY', 'COMPLETED', 'CANCELLED'
 ];
 
-const getStatusColor = (status: string) => {
-  switch(status) {
-    case 'Pending':
-      return 'bg-amber-100 text-amber-800';
-    case 'Preparing':
-      return 'bg-blue-100 text-blue-800';
-    case 'Delivered':
-      return 'bg-green-100 text-green-800';
-    case 'Ready for Pickup':
-      return 'bg-purple-100 text-purple-800';
-    default:
-      return 'bg-gray-100 text-gray-800';
+export function getStatusBadgeVariant(status: ApiAdminOrder['status']): "default" | "secondary" | "destructive" | "outline" {
+  switch (status) {
+    case 'PENDING': return 'secondary';
+    case 'PROCESSING': return 'secondary';
+    case 'READY': return 'default';
+    case 'COMPLETED': return 'default';
+    case 'CANCELLED': return 'destructive';
+    default: return 'outline';
   }
-};
-
-const formatDate = (dateString: string) => {
-  const date = new Date(dateString);
-  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' ' + 
-         date.toLocaleDateString([], { month: 'short', day: 'numeric' });
-};
+}
 
 const Orders = () => {
-  const [orders, setOrders] = useState(mockOrders);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
 
-  const filteredOrders = orders.filter(order => {
-    const matchesSearch = order.id.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          order.table.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'All' || order.status === statusFilter;
-    return matchesSearch && matchesStatus;
+  // --- Fetch Orders --- 
+  const { data: ordersData, isLoading, error } = useQuery<ApiAdminOrder[]>({
+    queryKey: ['adminOrders', statusFilter], // Refetch if filter changes
+    queryFn: async () => {
+      let url = '/admin/orders/';
+      if (statusFilter !== 'All') {
+        url += `?status=${statusFilter}`;
+      }
+      const data = await apiClient<ApiAdminOrder[]>(url);
+      // TODO: Implement client-side search filtering for now
+      if (searchTerm) {
+        return data.filter(order => String(order.id).includes(searchTerm) ||
+          order.customer.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          order.canteen.name.toLowerCase().includes(searchTerm.toLowerCase()));
+      }
+      return data;
+    },
+    // Consider keeping previous data while refetching based on filter
+    // keepPreviousData: true, 
   });
 
-  const updateOrderStatus = (orderId: string, newStatus: string) => {
-    setOrders(orders.map(order => 
-      order.id === orderId ? { ...order, status: newStatus } : order
-    ));
-  };
+  // --- Status Update Mutation --- 
+  const updateOrderStatusMutation = useMutation<
+    ApiAdminOrder,
+    Error,
+    { orderId: number; newStatus: ApiAdminOrder['status'] }
+  >({
+    mutationFn: ({ orderId, newStatus }) => {
+      return apiClient<ApiAdminOrder>(`/admin/orders/${orderId}/`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: newStatus }),
+      });
+    },
+    onSuccess: (updatedOrder) => {
+      // Update the query cache directly for instant UI feedback
+      queryClient.setQueryData<ApiAdminOrder[]>(['adminOrders', statusFilter], (oldData) =>
+        oldData ? oldData.map(order => order.id === updatedOrder.id ? updatedOrder : order) : []
+      );
+      // Optionally invalidate to ensure consistency, though setQueryData might be enough
+      // queryClient.invalidateQueries({ queryKey: ['adminOrders'] });
+      toast({ title: "Success", description: `Order #${updatedOrder.id} status updated.` });
+    },
+    onError: (error, variables) => {
+      toast({
+        title: "Error",
+        description: `Failed to update status for Order #${variables.orderId}: ${error.message}`,
+        variant: "destructive"
+      });
+    },
+  });
+
+  // Display loading/error states
+  if (isLoading) {
+    return <div className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin text-canteen-primary" /></div>;
+  }
+  if (error) {
+    return <div className="text-red-600 p-4 bg-red-50 rounded-md">Error loading orders: {(error as Error).message}</div>;
+  }
+
+  const orders = ordersData || [];
 
   return (
     <div className="space-y-6">
@@ -101,92 +135,109 @@ const Orders = () => {
         <h1 className="text-3xl font-heading font-bold mb-2">Orders Management</h1>
         <p className="text-muted-foreground">View and manage all customer orders</p>
       </div>
-      
+
       <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
         <div className="relative w-full md:w-72">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-          <Input 
-            placeholder="Search orders..." 
+          <Input
+            placeholder="Search orders..."
             className="pl-10"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        
+
         <div className="flex gap-2 w-full md:w-auto">
-          <select 
-            className="bg-white border rounded-md px-3 py-2 text-sm"
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-          >
-            <option value="All">All Statuses</option>
-            <option value="Pending">Pending</option>
-            <option value="Preparing">Preparing</option>
-            <option value="Delivered">Delivered</option>
-            <option value="Ready for Pickup">Ready for Pickup</option>
-          </select>
-          
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-full md:w-[180px]">
+              <SelectValue placeholder="Filter by status..." />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="All">All Statuses</SelectItem>
+              {ORDER_STATUSES.map(status => (
+                <SelectItem key={status} value={status}>{status}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
           <Button variant="outline" size="sm">
             <Filter size={18} className="mr-2" />
             More Filters
           </Button>
         </div>
       </div>
-      
-      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Order ID</TableHead>
-              <TableHead>Items</TableHead>
-              <TableHead>Table/Pickup</TableHead>
-              <TableHead>Total</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Time</TableHead>
-              <TableHead>Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredOrders.map((order) => (
-              <TableRow key={order.id}>
-                <TableCell className="font-medium">{order.id}</TableCell>
-                <TableCell>
-                  <div className="max-w-xs truncate">
-                    {order.items[0]}
-                    {order.items.length > 1 && ` +${order.items.length - 1} more`}
-                  </div>
-                </TableCell>
-                <TableCell>{order.table}</TableCell>
-                <TableCell>${order.total.toFixed(2)}</TableCell>
-                <TableCell>
-                  <span className={`inline-block rounded-full px-2 py-1 text-xs font-semibold ${getStatusColor(order.status)}`}>
-                    {order.status}
-                  </span>
-                </TableCell>
-                <TableCell>{formatDate(order.timestamp)}</TableCell>
-                <TableCell>
-                  <select 
-                    className="bg-white border rounded-md px-2 py-1 text-sm"
-                    value={order.status}
-                    onChange={(e) => updateOrderStatus(order.id, e.target.value)}
-                  >
-                    <option value="Pending">Pending</option>
-                    <option value="Preparing">Preparing</option>
-                    <option value="Delivered">Delivered</option>
-                    <option value="Ready for Pickup">Ready for Pickup</option>
-                  </select>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-        
-        {filteredOrders.length === 0 && (
-          <div className="py-8 text-center text-gray-500">
-            No orders matching your filters
-          </div>
-        )}
-      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>All Orders</CardTitle>
+          <CardDescription>View and manage customer orders.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {isLoading && <p>Loading orders...</p>}
+          {error && <p className="text-red-600">Error loading orders: {error.message}</p>}
+
+          {orders && orders.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>ID</TableHead>
+                  <TableHead>Customer</TableHead>
+                  <TableHead>Canteen</TableHead>
+                  <TableHead>Table</TableHead>
+                  <TableHead>Items</TableHead>
+                  <TableHead>Total</TableHead>
+                  <TableHead>Time</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Update Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {orders.map((order) => (
+                  <TableRow key={order.id}>
+                    <TableCell className="font-medium">#{order.id}</TableCell>
+                    <TableCell>{order.customer.username}</TableCell>
+                    <TableCell>{order.canteen.name}</TableCell>
+                    <TableCell>{order.table_number || 'N/A'}</TableCell>
+                    <TableCell>
+                      {order.items.map(item => item.menu_item.name).join(', ')}
+                    </TableCell>
+                    <TableCell>${parseFloat(order.total_price).toFixed(2)}</TableCell>
+                    <TableCell>{format(parseISO(order.created_at), "HH:mm dd/MM/yy")}</TableCell>
+                    <TableCell>
+                      <Badge variant={getStatusBadgeVariant(order.status)}>{order.status}</Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Select
+                        value={order.status}
+                        onValueChange={(newStatus) => {
+                          if (ORDER_STATUSES.includes(newStatus as ApiAdminOrder['status'])) {
+                            updateOrderStatusMutation.mutate({
+                              orderId: order.id,
+                              newStatus: newStatus as ApiAdminOrder['status']
+                            });
+                          }
+                        }}
+                        disabled={updateOrderStatusMutation.isPending && updateOrderStatusMutation.variables?.orderId === order.id}
+                      >
+                        <SelectTrigger className="w-[140px]">
+                          <SelectValue placeholder="Update status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {ORDER_STATUSES.map(status => (
+                            <SelectItem key={status} value={status}>{status}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            !isLoading && <p>No orders found.</p>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };

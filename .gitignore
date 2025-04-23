@@ -22,3 +22,21 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Environment variables
+.env*
+!.env.example
+
+# Python / Django
+__pycache__/
+*.pyc
+venv/
+.venv/
+env/
+db.sqlite3
+media/
+static/
+
+# Test coverage
+htmlcov/
+.coverage

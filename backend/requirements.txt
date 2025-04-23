@@ -1,0 +1,7 @@
+django
+djangorestframework
+psycopg2-binary # Or remove if using SQLite
+dj-rest-auth[with_framework_token]
+django-filter
+django-cors-headers
+django-allauth 

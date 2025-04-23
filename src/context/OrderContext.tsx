@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 
 export type OrderType = 'dine-in' | 'pickup' | null;
@@ -21,8 +20,10 @@ export interface OrderContextType {
   selectedTable: number | null;
   orderItems: OrderItem[];
   orderStatus: string;
+  selectedCanteenId: number | null;
   setOrderType: (type: OrderType) => void;
   setSelectedTable: (table: number | null) => void;
+  setSelectedCanteenId: (id: number | null) => void;
   addItemToOrder: (item: MenuItem) => void;
   removeItemFromOrder: (itemId: string) => void;
   updateItemQuantity: (itemId: string, quantity: number) => void;
@@ -38,12 +39,13 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const [selectedTable, setSelectedTable] = useState<number | null>(null);
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
   const [orderStatus, setOrderStatus] = useState<string>('Not Started');
+  const [selectedCanteenId, setSelectedCanteenId] = useState<number | null>(null);
 
   const addItemToOrder = (item: MenuItem) => {
     setOrderItems(prevItems => {
       const existingItem = prevItems.find(i => i.id === item.id);
       if (existingItem) {
-        return prevItems.map(i => 
+        return prevItems.map(i =>
           i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i
         );
       } else {
@@ -62,8 +64,8 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       return;
     }
 
-    setOrderItems(prevItems => 
-      prevItems.map(item => 
+    setOrderItems(prevItems =>
+      prevItems.map(item =>
         item.id === itemId ? { ...item, quantity } : item
       )
     );
@@ -72,10 +74,13 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const clearOrder = () => {
     setOrderItems([]);
     setOrderStatus('Not Started');
+    setSelectedTable(null);
+    setSelectedCanteenId(null);
+    setOrderType(null);
   };
 
   const totalPrice = orderItems.reduce(
-    (sum, item) => sum + item.price * item.quantity, 
+    (sum, item) => sum + item.price * item.quantity,
     0
   );
 
@@ -86,8 +91,10 @@ export const OrderProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         selectedTable,
         orderItems,
         orderStatus,
+        selectedCanteenId,
         setOrderType,
         setSelectedTable,
+        setSelectedCanteenId,
         addItemToOrder,
         removeItemFromOrder,
         updateItemQuantity,
