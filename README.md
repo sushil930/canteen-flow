@@ -1,73 +1,154 @@
-# Welcome to your Lovable project
+# Canteen Flow - Smart Campus Food Ordering System
 
-## Project info
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) <!-- Optional: Add license badge if applicable -->
 
-**URL**: https://lovable.dev/projects/2ad16671-1696-46a8-b572-372c2180a134
+Canteen Flow is a modern, full-stack web application designed to streamline the food ordering process within a campus environment. It provides an intuitive interface for users to browse menus, place orders, and manage their dining experience, along with a robust admin panel for canteen staff to manage offerings and orders.
 
-## How can I edit this code?
+<!-- Optional: Add a screenshot or GIF here -->
+<!-- ![Canteen Flow Screenshot](link/to/your/screenshot.png) -->
 
-There are several ways of editing your application.
+## Features
 
-**Use Lovable**
+**User Features:**
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/2ad16671-1696-46a8-b572-372c2180a134) and start prompting.
+*   **Canteen Selection:** Choose from available canteens on campus.
+*   **Menu Browsing:** View menu items categorized for easy navigation (e.g., Main Course, Drinks, Snacks).
+*   **Item Details:** See item names, descriptions, prices, and images.
+*   **Category Filtering:** Filter menu items by category or view all items.
+*   **Shopping Cart:** Add/remove items, adjust quantities, and view the running total.
+*   **Order Placement:** Submit orders associated with a selected table number.
+*   **Order Confirmation:** Receive confirmation with an Order ID and table number.
+*   **User Authentication:** Secure registration and login for personalized experience.
+*   **Order History:** (Planned/Optional) View past orders.
 
-Changes made via Lovable will be committed automatically to this repo.
+**Admin Features:**
 
-**Use your preferred IDE**
+*   **Admin Dashboard:** Centralized management interface.
+*   **Canteen Management:** Full CRUD (Create, Read, Update, Delete) operations for canteens.
+*   **Menu Item Management:** Full CRUD operations for menu items, including image uploads.
+*   **Order Management:** View incoming orders with associated items, quantities, total price, customer details, and table number.
+*   **Order Status Updates:** (Planned/Optional) Update the status of orders (e.g., Preparing, Ready, Delivered).
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## Technology Stack
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+*   **Frontend:**
+    *   Framework: React (with Vite)
+    *   Language: TypeScript
+    *   Styling: Tailwind CSS
+    *   UI Components: shadcn/ui, Lucide Icons
+    *   State Management: React Context API (`useAuth`, `useOrder`)
+    *   Data Fetching: React Query (`useQuery`, `useMutation`)
+    *   Routing: React Router
+    *   Animations: Framer Motion
+*   **Backend:**
+    *   Framework: Django, Django REST Framework (DRF)
+    *   Language: Python
+    *   Database: SQLite (for development, configurable for production)
+    *   Authentication: Django's built-in auth, potentially parts of `django-allauth`
+    *   API Handling: `django-cors-headers`
 
-Follow these steps:
+## Getting Started
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+Follow these instructions to set up and run the project locally for development.
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+### Prerequisites
 
-# Step 3: Install the necessary dependencies.
-npm i
+*   [Python](https://www.python.org/) (3.8+ recommended)
+*   [Node.js](https://nodejs.org/) (LTS version recommended) and npm, OR [Bun](https://bun.sh/)
+*   [Git](https://git-scm.com/)
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+### Installation
 
-**Edit a file directly in GitHub**
+1.  **Clone the repository:**
+    ```bash
+    git clone <your-repository-url>
+    cd canteen-order-flow # Or your project's root directory name
+    ```
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+2.  **Backend Setup:**
+    ```bash
+    # Navigate to the backend directory
+    cd backend
 
-**Use GitHub Codespaces**
+    # Create and activate a virtual environment (recommended)
+    python -m venv venv
+    # On Windows:
+    .\venv\Scripts\activate
+    # On macOS/Linux:
+    # source venv/bin/activate
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+    # Install Python dependencies
+    pip install -r requirements.txt # Ensure you have a requirements.txt file
 
-## What technologies are used for this project?
+    # Apply database migrations
+    python manage.py makemigrations
+    python manage.py migrate
 
-This project is built with:
+    # Create a superuser for accessing the Django admin (optional)
+    python manage.py createsuperuser
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+    # (Optional) Create a .env file based on .env.example if provided
+    # cp .env.example .env
+    # # --> Fill in necessary backend environment variables (SECRET_KEY, etc.)
 
-## How can I deploy this project?
+    # Run the backend development server (usually on port 8000)
+    python manage.py runserver
+    ```
 
-Simply open [Lovable](https://lovable.dev/projects/2ad16671-1696-46a8-b572-372c2180a134) and click on Share -> Publish.
+3.  **Frontend Setup:**
+    ```bash
+    # Navigate back to the project root and then to the frontend directory (if not already done)
+    # cd .. # From backend directory
 
-## Can I connect a custom domain to my Lovable project?
+    # Install frontend dependencies (choose one)
+    npm install
+    # OR
+    # bun install
 
-Yes it is!
+    # (Optional) Create a .env file based on .env.example if provided
+    # cp .env.example .env
+    # # --> Fill in necessary frontend environment variables (e.g., VITE_BACKEND_URL=http://127.0.0.1:8000)
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+    # Run the frontend development server (usually on port 5173 or 8080)
+    npm run dev
+    # OR
+    # bun run dev
+    ```
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+4.  **Access the Application:**
+    *   Frontend: Open your browser to `http://localhost:5173` (or the port specified by Vite/Bun).
+    *   Backend API: Accessible at `http://localhost:8000/api/`.
+    *   Django Admin: `http://localhost:8000/admin/` (requires superuser login).
+
+## Environment Variables
+
+This project may require environment variables for configuration (e.g., API keys, secret keys, database URLs).
+
+*   Check for `.env.example` files in both the `frontend` and `backend` directories.
+*   Create corresponding `.env` files by copying the examples: `cp .env.example .env`
+*   Fill in the required values in your `.env` files. These files are ignored by Git (`.gitignore`).
+
+## API Overview (Key Endpoints)
+
+*   `/api/canteens/`: List available canteens.
+*   `/api/categories/?canteen=<id>`: Get categories for a specific canteen.
+*   `/api/menu-items/?canteen=<id>`: Get menu items for a specific canteen.
+*   `/api/orders/`: Place new orders (POST), view user's orders (GET). (Requires Auth)
+*   `/api/auth/`: Endpoints for login, logout, registration (specific paths may vary).
+*   `/api/admin/`: Endpoints for admin management of canteens, menu items. (Requires Staff Auth)
+*   `/admin/`: Standard Django administration interface.
+
+## Contributing
+
+Contributions are welcome! Please follow standard Git workflow:
+
+1.  Fork the repository.
+2.  Create a new branch (`git checkout -b feature/your-feature-name`).
+3.  Make your changes.
+4.  Commit your changes (`git commit -m 'Add some feature'`).
+5.  Push to the branch (`git push origin feature/your-feature-name`).
+6.  Open a Pull Request.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE.md) file for details (Optional: Create a LICENSE.md file if you choose a license).
