@@ -23,7 +23,8 @@ import RegisterPage from "./pages/RegisterPage";
 import { getAuthToken } from './lib/api';
 import { AuthProvider } from "./contexts/AuthContext";
 import { ProtectedRoute } from "./components/ProtectedRoute";
-import { ThemeProvider } from "@/components/theme-provider";
+// Remove theme provider import
+// Remove: import OrderHistory from './pages/OrderHistory';
 
 const queryClient = new QueryClient();
 
@@ -39,50 +40,48 @@ const AdminRoute = ({ children }: { children: React.ReactNode }) => {
 };
 
 const App = () => (
-  <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <OrderProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Routes>
-              {/* Customer routes */}
-              <Route path="/" element={<Index />} />
-              <Route path="/canteen/:canteenId/table" element={<TableSelection />} />
+  <QueryClientProvider client={queryClient}>
+    <AuthProvider>
+      <OrderProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            {/* Customer routes (Public) */}
+            <Route path="/" element={<Index />} />
+            <Route path="/canteen/:canteenId/table" element={<TableSelection />} />
+            {/* Removed /menu from public routes as it should likely be protected */}
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
+
+            {/* Authenticated Routes (Customer) */}
+            <Route element={<ProtectedRoute allowedRoles={['customer']} />}>
               <Route path="/menu" element={<Menu />} />
               <Route path="/order-summary" element={<OrderSummary />} />
               <Route path="/payment" element={<Payment />} />
-              <Route path="/order-confirmation" element={<OrderConfirmation />} />
-              <Route path="/order-status" element={<OrderStatus />} />
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/register" element={<RegisterPage />} />
+              <Route path="/order-confirmation/:orderId" element={<OrderConfirmation />} />
+              {/* OrderStatus now handles history, ensure param is optional or handled */}
+              <Route path="/order-status/:orderId?" element={<OrderStatus />} /> 
+              {/* Removed: <Route path="/order-history" element={<OrderHistory />} /> */}
+            </Route>
 
-              {/* Authenticated Routes (Customer) */}
-              <Route element={<ProtectedRoute allowedRoles={['customer']} />}>
-                <Route path="/menu" element={<Menu />} />
-                <Route path="/payment" element={<Payment />} />
-                <Route path="/order-confirmation/:orderId" element={<OrderConfirmation />} />
-                <Route path="/order-status/:orderId" element={<OrderStatus />} />
-              </Route>
+            {/* Admin routes */}
+            <Route path="/admin/login" element={<Login />} />
+            <Route path="/admin" element={<ProtectedRoute allowedRoles={['admin']} />}>
+              <Route index element={<Navigate to="/admin/dashboard" replace />} />
+              <Route path="dashboard" element={<Dashboard />} />
+              <Route path="orders" element={<Orders />} />
+              <Route path="transactions" element={<Transactions />} />
+              <Route path="menu" element={<MenuManagement />} />
+              {/* Removed the duplicate OrderHistory route from admin section */}
+            </Route>
 
-              {/* Admin routes */}
-              <Route path="/admin/login" element={<Login />} />
-              <Route path="/admin" element={<ProtectedRoute allowedRoles={['admin']} />}>
-                <Route index element={<Navigate to="/admin/dashboard" replace />} />
-                <Route path="dashboard" element={<Dashboard />} />
-                <Route path="orders" element={<Orders />} />
-                <Route path="transactions" element={<Transactions />} />
-                <Route path="menu" element={<MenuManagement />} />
-              </Route>
-
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </OrderProvider>
-      </AuthProvider>
-    </QueryClientProvider>
-  </ThemeProvider>
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </OrderProvider>
+    </AuthProvider>
+  </QueryClientProvider>
 );
 
 export default App;

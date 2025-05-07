@@ -74,35 +74,9 @@ This project follows a standard client-server architecture:
 
 Here's a high-level overview of the project structure:
 
-canteen-order-flow/
-├── backend/                  # Django Backend Application
-│   ├── api/                  # DRF API application (serializers, views, urls)
-│   ├── canteen_backend/      # Django project settings, main urls.py, wsgi.py
-│   ├── media/                # User-uploaded files (e.g., menu item images)
-│   ├── venv/                 # Python virtual environment (if created here)
-│   ├── db.sqlite3            # Development database
-│   ├── manage.py             # Django management script
-│   └── requirements.txt      # Backend Python dependencies
-│
-├── frontend/                 # React Frontend Application (Vite)
-│   ├── public/               # Static assets served directly
-│   ├── src/                  # Main frontend source code
-│   │   ├── assets/           # Static assets (images, fonts) processed by Vite
-│   │   ├── components/       # Reusable UI components (e.g., Header, Button)
-│   │   ├── context/          # React Context API providers (e.g., OrderContext, AuthContext)
-│   │   ├── hooks/            # Custom React hooks
-│   │   ├── lib/              # Utility functions, API client setup
-│   │   ├── pages/            # Page-level components (routed views)
-│   │   ├── styles/           # Global styles (if any beyond Tailwind)
-│   │   ├── App.tsx           # Main application component, router setup
-│   │   └── main.tsx          # Application entry point
-│   ├── index.html            # Main HTML template
-│   ├── package.json          # Frontend dependencies and scripts
-│   ├── tsconfig.json         # TypeScript configuration
-│   └── vite.config.ts        # Vite configuration
-│
-├── .gitignore                # Specifies intentionally untracked files
-└── README.md                 # This file
+*   **Getting Started**
+
+Follow these instructions to set up and run the project locally for development.
 
 ### Prerequisites
 

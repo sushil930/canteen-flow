@@ -7,8 +7,9 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { User, LogIn } from 'lucide-react';
-import { apiClient, setAuthToken } from '@/lib/api';
+import { apiClient } from '@/lib/api';
 import { useToast } from '@/components/ui/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 
 const formSchema = z.object({
     username: z.string().min(1, { message: "Username is required." }),
@@ -22,7 +23,8 @@ interface LoginResponse {
 const LoginPage = () => {
     const navigate = useNavigate();
     const { toast } = useToast();
-    const [isLoading, setIsLoading] = useState(false);
+    const auth = useAuth();
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -30,7 +32,8 @@ const LoginPage = () => {
     });
 
     const onSubmit = async (values: z.infer<typeof formSchema>) => {
-        setIsLoading(true);
+        setIsSubmitting(true);
+        form.clearErrors();
         try {
             const data = await apiClient<LoginResponse>('/auth/login/', {
                 method: 'POST',
@@ -38,39 +41,42 @@ const LoginPage = () => {
             });
 
             if (data.key) {
-                setAuthToken(data.key);
+                await auth.login(data.key);
                 toast({ title: "Login Successful", description: "Welcome back!" });
-                navigate('/menu');
+                navigate('/');
             } else {
                 form.setError("root", { message: "Login failed: No token received." });
             }
         } catch (err: any) {
             console.error("Login error:", err);
-            form.setError("root", { message: err.message || 'Login failed. Please check credentials.' });
+            const errorMessage = err.response?.data?.detail || err.message || 'Login failed. Please check credentials.';
+            form.setError("root", { message: errorMessage });
         } finally {
-            setIsLoading(false);
+            setIsSubmitting(false);
         }
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col justify-center items-center p-4">
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col justify-center items-center p-4">
             <div className="w-full max-w-md">
                 <div className="text-center mb-8">
-                    <h1 className="text-3xl font-heading font-bold text-canteen-primary">Customer Login</h1>
-                    <p className="text-gray-500 mt-2">Access your account or continue as guest</p>
+                    <h1 className="text-3xl font-bold text-primary brand-gradient">
+                        Welcome Back
+                    </h1>
+                    <p className="text-muted-foreground mt-2">Login to continue to Canteen Flow.</p>
                 </div>
 
-                <div className="bg-white rounded-xl shadow-sm p-8">
+                <div className="bg-card rounded-xl shadow-lg p-8 border dark:border-gray-700">
                     <div className="flex justify-center mb-6">
-                        <div className="bg-canteen-primary/10 p-4 rounded-full">
-                            <User size={28} className="text-canteen-primary" />
+                        <div className="bg-primary/10 p-4 rounded-full border border-primary/20">
+                            <User size={32} className="text-primary" />
                         </div>
                     </div>
 
                     <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                             {form.formState.errors.root && (
-                                <div className="bg-red-50 text-red-600 p-3 rounded-md text-sm">
+                                <div className="bg-destructive/10 text-destructive p-3 rounded-md text-sm border border-destructive/30">
                                     {form.formState.errors.root.message}
                                 </div>
                             )}
@@ -81,7 +87,12 @@ const LoginPage = () => {
                                     <FormItem>
                                         <FormLabel>Username</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="Enter your username" {...field} />
+                                            <Input 
+                                                placeholder="Enter your username" 
+                                                {...field} 
+                                                className="h-10"
+                                                disabled={isSubmitting || auth.isLoading} 
+                                            />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -94,25 +105,54 @@ const LoginPage = () => {
                                     <FormItem>
                                         <FormLabel>Password</FormLabel>
                                         <FormControl>
-                                            <Input type="password" placeholder="Enter your password" {...field} />
+                                            <Input 
+                                                type="password" 
+                                                placeholder="Enter your password" 
+                                                {...field} 
+                                                className="h-10"
+                                                disabled={isSubmitting || auth.isLoading}
+                                            />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
                                 )}
                             />
 
-                            <Button type="submit" className="w-full gap-2" disabled={isLoading}>
-                                {isLoading ? 'Logging in...' : 'Login'}
+                            <Button 
+                                type="submit" 
+                                className="w-full gap-2 h-11 text-base bg-primary hover:bg-primary/90" 
+                                disabled={isSubmitting || auth.isLoading}
+                            >
+                                {isSubmitting || auth.isLoading ? (
+                                    <>
+                                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                        Logging in...
+                                    </>
+                                ) : (
+                                    <>
+                                        <LogIn size={18} className="mr-2" />
+                                        Login
+                                    </>
+                                )}
                             </Button>
                         </form>
                     </Form>
 
-                    <div className="text-center mt-6 text-sm">
-                        <p className="text-gray-500">Don't have an account?
-                            <Link to="/register" className="font-medium text-canteen-primary hover:underline ml-1">Sign up</Link>
+                    <div className="text-center mt-8 text-sm">
+                        <p className="text-muted-foreground">
+                            Don't have an account?
+                            <Link to="/register" className="font-medium text-primary hover:underline ml-1">
+                                Sign up
+                            </Link>
                         </p>
                     </div>
                 </div>
+                 <p className="text-xs text-muted-foreground text-center mt-8">
+                    &copy; {new Date().getFullYear()} Canteen Flow. All rights reserved.
+                </p>
             </div>
         </div>
     );

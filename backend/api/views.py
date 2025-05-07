@@ -1,3 +1,4 @@
+import time
 from django.shortcuts import render
 from rest_framework import viewsets, permissions, generics, status
 from rest_framework.response import Response
@@ -15,8 +16,17 @@ from .serializers import (
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.views import APIView
 from django.db.models.functions import TruncHour, TruncDay
+import razorpay
+from django.conf import settings
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
+from django.views.decorators.csrf import csrf_exempt # For webhook, if needed later
+from django.utils.decorators import method_decorator
 
-# Create your views here.
+from .models import Order, OrderItem, MenuItem, Canteen # Import necessary models
+from .serializers import OrderSerializer # Import necessary serializers
 
 class CanteenViewSet(viewsets.ReadOnlyModelViewSet):
     """ViewSet for listing and retrieving Canteens."""
@@ -245,3 +255,173 @@ class UserRegistrationView(generics.CreateAPIView):
     queryset = User.objects.all()
     permission_classes = [permissions.AllowAny] # Anyone can register
     serializer_class = UserRegistrationSerializer
+
+# --- Razorpay Views --- 
+
+# Initialize Razorpay client
+# Ensure RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET are set in settings.py
+razorpay_client = None
+if settings.RAZORPAY_KEY_ID and settings.RAZORPAY_KEY_SECRET:
+    razorpay_client = razorpay.Client(
+        auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET)
+    )
+else:
+    print("WARNING: Razorpay client not initialized. Keys missing in settings.")
+
+class CreateRazorpayOrderView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        if not razorpay_client:
+            return Response({"error": "Razorpay client not initialized"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        amount = request.data.get('amount') # Amount should be in paise from frontend
+        if not amount or not isinstance(amount, int) or amount <= 0:
+            return Response({"error": "Invalid amount"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            order_currency = 'INR'
+            order_receipt = f'order_rcptid_{request.user.id}_{int(time.time())}' # Example receipt ID
+
+            notes = { 
+                'user_id': request.user.id,
+                # Add any other notes you want to pass to Razorpay
+            }
+
+            razorpay_order = razorpay_client.order.create(dict(
+                amount=amount,
+                currency=order_currency,
+                receipt=order_receipt,
+                notes=notes,
+                payment_capture='1' # Auto capture payment
+            ))
+
+            print(f"Razorpay Order Created: {razorpay_order['id']}")
+            return Response({"order_id": razorpay_order['id']}, status=status.HTTP_201_CREATED)
+
+        except Exception as e:
+            print(f"Error creating Razorpay order: {e}")
+            return Response({"error": "Could not create Razorpay order"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class VerifyPaymentView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        if not razorpay_client:
+            return Response({"error": "Razorpay client not initialized"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        payment_data = request.data
+        razorpay_payment_id = payment_data.get('razorpay_payment_id')
+        razorpay_order_id = payment_data.get('razorpay_order_id')
+        razorpay_signature = payment_data.get('razorpay_signature')
+        local_order_details = payment_data.get('local_order_details')
+
+        if not all([razorpay_payment_id, razorpay_order_id, razorpay_signature, local_order_details]):
+            return Response({"error": "Missing payment verification data"}, status=status.HTTP_400_BAD_REQUEST)
+
+        params_dict = {
+            'razorpay_order_id': razorpay_order_id,
+            'razorpay_payment_id': razorpay_payment_id,
+            'razorpay_signature': razorpay_signature
+        }
+
+        try:
+            razorpay_client.utility.verify_payment_signature(params_dict)
+            print(f"Razorpay Signature Verified for Order: {razorpay_order_id}")
+
+            try:
+                canteen_id = local_order_details.get('canteen')
+                table_number = local_order_details.get('table_number')
+                items_data = local_order_details.get('items')
+                total_price = local_order_details.get('total_price')
+
+                if not canteen_id or not items_data:
+                     raise ValueError("Missing canteen or items in local order details")
+
+                canteen = Canteen.objects.get(id=canteen_id)
+                
+                order = Order.objects.create(
+                    customer=request.user,
+                    canteen=canteen,
+                    table_number=table_number,
+                    total_price=total_price,
+                    status='PENDING',
+                    razorpay_order_id=razorpay_order_id,
+                    razorpay_payment_id=razorpay_payment_id
+                )
+
+                order_items_to_create = []
+                for item_data in items_data:
+                    menu_item_id = item_data.get('menu_item_id')
+                    if not menu_item_id:
+                        raise ValueError(f"Missing menu_item_id in item data: {item_data}")
+                    menu_item = MenuItem.objects.get(id=menu_item_id)
+                    order_items_to_create.append(
+                        OrderItem(
+                            order=order,
+                            menu_item=menu_item,
+                            quantity=item_data['quantity'],
+                            price=menu_item.price
+                        )
+                    )
+                OrderItem.objects.bulk_create(order_items_to_create)
+                
+                print(f"Database Order Created: {order.id}")
+                return Response({"success": True, "orderId": order.id}, status=status.HTTP_201_CREATED)
+
+            except Canteen.DoesNotExist:
+                 print("Error creating DB order: Canteen not found")
+                 return Response({"error": "Invalid canteen specified"}, status=status.HTTP_400_BAD_REQUEST)
+            except MenuItem.DoesNotExist:
+                 print("Error creating DB order: Menu item not found")
+                 return Response({"error": "Invalid menu item specified"}, status=status.HTTP_400_BAD_REQUEST)
+            except ValueError as ve:
+                 print(f"ValueError creating DB order: {ve}")
+                 return Response({"error": str(ve)}, status=status.HTTP_400_BAD_REQUEST)
+            except Exception as db_error:
+                 print(f"Error creating database order after payment verification: {db_error}")
+                 return Response({"error": "Order creation failed after payment verification"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        except razorpay.errors.SignatureVerificationError as e:
+            print(f"Razorpay Signature Verification Failed: {e}")
+            return Response({"error": "Payment signature verification failed"}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            print(f"Error during payment verification process: {e}")
+            return Response({"error": "An unexpected error occurred during payment verification"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+# --- Optional: Razorpay Webhook View --- 
+# Use @method_decorator(csrf_exempt, name='dispatch') if using CSRF
+# @method_decorator(csrf_exempt, name='dispatch') 
+# class RazorpayWebhookView(APIView):
+#     permission_classes = [] # No auth needed for webhook
+# 
+#     def post(self, request, *args, **kwargs):
+#         if not razorpay_client:
+#             return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+# 
+#         payload = request.body
+#         sig_header = request.META.get('HTTP_X_RAZORPAY_SIGNATURE')
+#         webhook_secret = settings.RAZORPAY_WEBHOOK_SECRET # Add this to your .env and settings.py
+# 
+#         if not sig_header or not webhook_secret:
+#             return Response(status=status.HTTP_400_BAD_REQUEST)
+# 
+#         try:
+#             razorpay_client.utility.verify_webhook_signature(payload, sig_header, webhook_secret)
+#             # Process the event (e.g., payment.captured, order.paid)
+#             event_data = json.loads(payload)
+#             event_type = event_data.get('event')
+#             print(f"Received Razorpay webhook event: {event_type}")
+# 
+#             if event_type == 'payment.captured' or event_type == 'order.paid':
+#                 # Find the corresponding order in your DB using razorpay_order_id
+#                 # Update its status if necessary (e.g., if verification view failed earlier)
+#                 pass
+# 
+#             return Response(status=status.HTTP_200_OK)
+#         except razorpay.errors.SignatureVerificationError as e:
+#             print(f"Webhook Signature Verification Failed: {e}")
+#             return Response(status=status.HTTP_400_BAD_REQUEST)
+#         except Exception as e:
+#             print(f"Error processing webhook: {e}")
+#             return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)

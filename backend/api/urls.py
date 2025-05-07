@@ -11,7 +11,8 @@ from .views import (
     DashboardStatsView,
     UserRegistrationView,
     CustomerCategoryListViewSet,
-    CustomerMenuItemListViewSet
+    CustomerMenuItemListViewSet,
+    CreateRazorpayOrderView, VerifyPaymentView #, RazorpayWebhookView
 )
 
 # Router for customer-facing, generally accessible endpoints
@@ -47,4 +48,10 @@ urlpatterns = [
     path('auth/', include('dj_rest_auth.urls')),
     
     # We will add our custom registration URL below
-] 
+]
+
+urlpatterns += [
+    path('payment/create-razorpay-order/', CreateRazorpayOrderView.as_view(), name='create_razorpay_order'),
+    path('payment/verify-payment/', VerifyPaymentView.as_view(), name='verify_payment'),
+    # path('payment/webhook/', RazorpayWebhookView.as_view(), name='razorpay_webhook'), # Optional webhook URL
+]

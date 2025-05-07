@@ -1,6 +1,7 @@
 import React, { createContext, useState, ReactNode, useEffect, useContext } from 'react';
 
-interface OrderItem {
+// Add export keyword here
+export interface OrderItem {
     menuItemId: number;
     quantity: number;
     name: string;
@@ -144,4 +145,4 @@ export const useOrder = () => {
         throw new Error('useOrder must be used within an OrderProvider');
     }
     return context;
-}; 
+};

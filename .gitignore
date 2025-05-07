@@ -26,6 +26,7 @@ dist-ssr
 # Environment variables
 .env*
 !.env.example
+.env.local
 
 # Python / Django
 __pycache__/

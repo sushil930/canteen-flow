@@ -11,10 +11,14 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
 from pathlib import Path
-import os  # Add this import at the top if not already present
+import os
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Load environment variables from .env file
+load_dotenv(os.path.join(BASE_DIR, '.env')) 
 
 
 # Quick-start development settings - unsuitable for production
@@ -190,3 +194,13 @@ ACCOUNT_EMAIL_VERIFICATION = 'none' # Can be 'mandatory' or 'optional' if you se
 ACCOUNT_AUTHENTICATION_METHOD = 'username' # Or 'email' or 'username_email'
 ACCOUNT_EMAIL_REQUIRED = True # Make email required for registration
 # EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend' # For testing email sending
+
+
+# Razorpay Keys
+RAZORPAY_KEY_ID = os.getenv('RAZORPAY_KEY_ID')
+RAZORPAY_KEY_SECRET = os.getenv('RAZORPAY_KEY_SECRET')
+
+# Add checks to ensure keys are loaded
+if not RAZORPAY_KEY_ID or not RAZORPAY_KEY_SECRET:
+    # Handle missing keys appropriately (e.g., raise ImproperlyConfigured)
+    print("WARNING: Razorpay keys not found in environment variables.")

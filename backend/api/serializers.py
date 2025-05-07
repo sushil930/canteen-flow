@@ -66,7 +66,8 @@ class OrderItemSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = OrderItem
-        fields = ['id', 'menu_item', 'quantity', 'price_at_time_of_order']
+        # Correct the field name here
+        fields = ['id', 'menu_item', 'quantity', 'price'] # Changed 'price_at_time_of_order' to 'price'
 
 class OrderSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True, read_only=True)
@@ -221,4 +222,4 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         return user
 
 # We might need more specific serializers later, e.g., for Admin Menu Management
-# For now, Admins can potentially use the same MenuItemSerializer but with write permissions handled by the view. 
+# For now, Admins can potentially use the same MenuItemSerializer but with write permissions handled by the view.
