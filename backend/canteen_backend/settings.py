@@ -100,10 +100,21 @@ WSGI_APPLICATION = 'canteen_backend.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.getenv('DB_NAME'),
+        'USER': os.getenv('DB_USER'),
+        'PASSWORD': os.getenv('DB_PASSWORD'),
+        'HOST': os.getenv('DB_HOST'),
+        'PORT': os.getenv('DB_PORT', '5432'), # Default PostgreSQL port
     }
 }
+
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'db.sqlite3',
+#     }
+# }
 
 
 # Password validation
@@ -191,7 +202,7 @@ AUTHENTICATION_BACKENDS = (
 
 # Allauth / dj-rest-auth Registration Settings (optional, defaults are often okay)
 ACCOUNT_EMAIL_VERIFICATION = 'none' # Can be 'mandatory' or 'optional' if you set up email
-ACCOUNT_AUTHENTICATION_METHOD = 'username' # Or 'email' or 'username_email'
+ACCOUNT_LOGIN_METHODS = {'username'} # Or 'email' or 'username_email'
 ACCOUNT_EMAIL_REQUIRED = True # Make email required for registration
 # EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend' # For testing email sending
 

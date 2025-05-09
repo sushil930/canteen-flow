@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, Plus, Trash, Edit, Loader2 } from 'lucide-react';
+import { Search, Plus, Trash, Edit, Loader2, UtensilsCrossed } from 'lucide-react';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -17,6 +17,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api';
 import { Badge } from '@/components/ui/badge';
+import { motion } from "framer-motion";
+import { Infinity } from 'ldrs/react';
+import 'ldrs/react/Infinity.css';
 import {
   Dialog, /* ... other Dialog imports ... */
 } from "@/components/ui/dialog"
@@ -197,7 +200,19 @@ const MenuManagement = () => {
   };
 
   if (isLoadingMenuItems || isLoadingCategories || isLoadingCanteens) {
-    return <div className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin text-canteen-primary" /></div>;
+    return (
+      <div className="flex flex-col justify-center items-center h-64">
+        <Infinity
+          size="55"
+          stroke="4"
+          strokeLength="0.15"
+          bgOpacity="0.1"
+          speed="1.3"
+          color="var(--canteen-primary)" 
+        />
+        <p className="text-gray-500 font-medium mt-4">Loading menu data...</p>
+      </div>
+    );
   }
 
   if (menuItemsError) {

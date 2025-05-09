@@ -9,6 +9,8 @@ import { formatCurrency } from '@/lib/utils';
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
+import { Infinity } from 'ldrs/react';
+import 'ldrs/react/Infinity.css';
 
 // Derive backend origin from API base URL (assuming it ends with /api)
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api';
@@ -148,8 +150,17 @@ const Menu = () => {
   if (menuQuery.isLoading) {
     return (
       <div className="flex flex-col justify-center items-center min-h-screen bg-gradient-to-b from-white to-gray-50">
-        <Loader2 className="h-12 w-12 animate-spin text-[#ff6433] mb-4" />
-        <p className="text-gray-600 font-medium">Loading menu items...</p>
+        <Infinity
+          size="55"
+          stroke="4"
+          strokeLength="0.15"
+          bgOpacity="0.1"
+          speed="1.3"
+          color="#ff6433" 
+        />
+        <p className="text-gray-600 font-medium mt-6">
+          Loading delicious menu items...
+        </p>
       </div>
     );
   }
