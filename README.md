@@ -94,7 +94,7 @@ Follow these instructions to set up and run the project locally for development.
 
 1.  **Clone the repository:**
     ```bash
-    git clone [<your-repository-url>](https://github.com/sushil930/canteen-flow.git)
+    git clone (https://github.com/sushil930/canteen-flow.git)
     cd canteen-order-flow
     ```
 
