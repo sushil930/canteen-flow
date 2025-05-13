@@ -10,6 +10,14 @@ import { User, LogIn } from 'lucide-react';
 import { apiClient } from '@/lib/api';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogFooter,
+} from '@/components/ui/dialog';
 
 const formSchema = z.object({
     username: z.string().min(1, { message: "Username is required." }),
@@ -25,6 +33,7 @@ const LoginPage = () => {
     const { toast } = useToast();
     const auth = useAuth();
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [showAdminDialog, setShowAdminDialog] = useState(false);
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -43,7 +52,13 @@ const LoginPage = () => {
             if (data.key) {
                 await auth.login(data.key);
                 toast({ title: "Login Successful", description: "Welcome back!" });
-                navigate('/');
+                
+                // Check if the user is admin/staff after auth.login completes
+                if (auth.user && (auth.user.is_staff || auth.user.is_superuser)) {
+                    setShowAdminDialog(true);
+                } else {
+                    navigate('/');
+                }
             } else {
                 form.setError("root", { message: "Login failed: No token received." });
             }
@@ -54,6 +69,16 @@ const LoginPage = () => {
         } finally {
             setIsSubmitting(false);
         }
+    };
+
+    const handleContinueAsUser = () => {
+        setShowAdminDialog(false);
+        navigate('/');
+    };
+
+    const handleGoToAdmin = () => {
+        setShowAdminDialog(false);
+        navigate('/admin');
     };
 
     return (
@@ -154,6 +179,26 @@ const LoginPage = () => {
                     &copy; {new Date().getFullYear()} Canteen Flow. All rights reserved.
                 </p>
             </div>
+
+            {/* Admin options dialog */}
+            <Dialog open={showAdminDialog} onOpenChange={setShowAdminDialog}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Admin Access</DialogTitle>
+                        <DialogDescription>
+                            You have admin privileges. Where would you like to go?
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter className="flex flex-col sm:flex-row sm:justify-center gap-2 mt-4">
+                        <Button variant="outline" onClick={handleContinueAsUser}>
+                            Continue as Regular User
+                        </Button>
+                        <Button onClick={handleGoToAdmin}>
+                            Go to Admin Dashboard
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 };

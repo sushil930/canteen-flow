@@ -8,6 +8,7 @@ interface User {
     first_name: string;
     last_name: string;
     is_staff: boolean; // To differentiate admin/staff
+    is_superuser: boolean; // For superuser privileges
 }
 
 interface AuthContextProps {

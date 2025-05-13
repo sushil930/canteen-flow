@@ -189,14 +189,14 @@ class DashboardStatsView(APIView):
         completed_orders_this_week = orders_this_week.filter(status__in=['COMPLETED', 'READY'])
         
         total_orders_today = orders_today.count()
-        revenue_today_agg = orders_today.filter(status__in=['COMPLETED', 'READY']).aggregate(total=Sum('total_amount'))
+        revenue_today_agg = orders_today.filter(status__in=['COMPLETED', 'READY']).aggregate(total=Sum('total_price'))
         revenue_today = revenue_today_agg['total'] or 0
-        avg_order_today_agg = orders_today.filter(status__in=['COMPLETED', 'READY']).aggregate(avg=Avg('total_amount'))
+        avg_order_today_agg = orders_today.filter(status__in=['COMPLETED', 'READY']).aggregate(avg=Avg('total_price'))
         avg_order_today = avg_order_today_agg['avg'] or 0
         pending_orders = Order.objects.filter(status__in=['PENDING', 'PROCESSING']).count()
         total_customers = User.objects.filter(is_staff=False, is_superuser=False).count()
         total_orders_yesterday = orders_yesterday.count()
-        revenue_yesterday_agg = orders_yesterday.filter(status__in=['COMPLETED', 'READY']).aggregate(total=Sum('total_amount'))
+        revenue_yesterday_agg = orders_yesterday.filter(status__in=['COMPLETED', 'READY']).aggregate(total=Sum('total_price'))
         revenue_yesterday = revenue_yesterday_agg['total'] or 0
         order_trend = ((total_orders_today - total_orders_yesterday) / total_orders_yesterday * 100) if total_orders_yesterday else (100 if total_orders_today > 0 else 0)
         revenue_trend = ((revenue_today - revenue_yesterday) / revenue_yesterday * 100) if revenue_yesterday else (100 if revenue_today > 0 else 0)
@@ -222,7 +222,7 @@ class DashboardStatsView(APIView):
         revenue_by_day = completed_orders_this_week \
             .annotate(day=TruncDay('created_at')) \
             .values('day') \
-            .annotate(total_revenue=Sum('total_amount')) \
+            .annotate(total_revenue=Sum('total_price')) \
             .order_by('day')
         
         # Format for recharts: [{ name: 'Mon', revenue: 520 }, ...]

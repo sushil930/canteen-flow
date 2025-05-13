@@ -1,194 +1,241 @@
-
 import React, { useState } from 'react';
-import { 
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow 
-} from '@/components/ui/table';
-import { Input } from '@/components/ui/input';
+import { useQuery } from '@tanstack/react-query';
+import { apiClient } from '@/lib/api';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Search, Filter, Calendar } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { format } from 'date-fns';
+import { Search, Loader2, ArrowUpDown, Banknote, Info } from 'lucide-react';
+import { Infinity } from 'ldrs/react';
+import 'ldrs/react/Infinity.css';
 
-// Mock data for transactions
-const mockTransactions = [
-  { 
-    id: 'TXN-001', 
-    orderId: 'ORD-001', 
-    amount: 24.97, 
-    status: 'Successful', 
-    method: 'Credit Card',
-    timestamp: '2025-04-11T12:31:00Z'
-  },
-  { 
-    id: 'TXN-002', 
-    orderId: 'ORD-002', 
-    amount: 19.47, 
-    status: 'Successful', 
-    method: 'Debit Card',
-    timestamp: '2025-04-11T12:16:00Z'
-  },
-  { 
-    id: 'TXN-003', 
-    orderId: 'ORD-003', 
-    amount: 22.97, 
-    status: 'Successful', 
-    method: 'Mobile Payment',
-    timestamp: '2025-04-11T12:11:00Z'
-  },
-  { 
-    id: 'TXN-004', 
-    orderId: 'ORD-004', 
-    amount: 25.97, 
-    status: 'Pending', 
-    method: 'Credit Card',
-    timestamp: '2025-04-11T12:41:00Z'
-  },
-  { 
-    id: 'TXN-005', 
-    orderId: 'ORD-005', 
-    amount: 18.96, 
-    status: 'Failed', 
-    method: 'Credit Card',
-    timestamp: '2025-04-11T12:36:00Z'
-  },
-  { 
-    id: 'TXN-006', 
-    orderId: 'ORD-005', 
-    amount: 18.96, 
-    status: 'Successful', 
-    method: 'Mobile Payment',
-    timestamp: '2025-04-11T12:39:00Z'
-  }
-];
+// Interfaces (assuming structure based on potential needs)
+interface ApiOrderBrief {
+  id: number;
+  // Maybe add customer username if needed
+}
 
-const getStatusColor = (status: string) => {
-  switch(status) {
-    case 'Successful':
-      return 'bg-green-100 text-green-800';
-    case 'Pending':
-      return 'bg-amber-100 text-amber-800';
-    case 'Failed':
-      return 'bg-red-100 text-red-800';
-    case 'Refunded':
-      return 'bg-purple-100 text-purple-800';
-    default:
-      return 'bg-gray-100 text-gray-800';
+type TransactionStatusType = 'PENDING' | 'SUCCESS' | 'FAILED' | 'REFUNDED';
+type PaymentMethodType = 'CARD' | 'UPI' | 'WALLET' | 'CASH' | 'OTHER';
+
+interface ApiTransaction {
+  id: number;
+  order: ApiOrderBrief;
+  transaction_id: string; // e.g., Razorpay ID
+  payment_method: PaymentMethodType;
+  amount: string;
+  status: TransactionStatusType;
+  created_at: string;
+  updated_at: string;
+}
+
+// Helper for status badges
+const getTransactionStatusBadgeVariant = (status: TransactionStatusType): "default" | "secondary" | "outline" | "destructive" | "success" => {
+  switch (status) {
+    case 'PENDING': return 'outline';
+    case 'SUCCESS': return 'success';
+    case 'FAILED': return 'destructive';
+    case 'REFUNDED': return 'secondary';
+    default: return 'default';
   }
 };
 
-const formatDateTime = (dateString: string) => {
-  const date = new Date(dateString);
-  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' ' + 
-         date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+const getTransactionStatusColorClasses = (status: TransactionStatusType): string => {
+  switch (status) {
+    case 'PENDING': return 'border-amber-600/30 bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400';
+    case 'SUCCESS': return 'border-green-600/30 bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400';
+    case 'FAILED': return 'border-red-600/30 bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400';
+    case 'REFUNDED': return 'border-gray-600/30 bg-gray-50 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400';
+    default: return 'border-gray-600/30 bg-gray-50 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400';
+  }
 };
+
+const TRANSACTION_STATUSES: TransactionStatusType[] = ['PENDING', 'SUCCESS', 'FAILED', 'REFUNDED'];
+const PAYMENT_METHODS: PaymentMethodType[] = ['CARD', 'UPI', 'WALLET', 'CASH', 'OTHER'];
 
 const Transactions = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('All');
+  const [statusFilter, setStatusFilter] = useState<TransactionStatusType | null>(null);
+  const [methodFilter, setMethodFilter] = useState<PaymentMethodType | null>(null);
+  const [sortField, setSortField] = useState<string>('-created_at'); // Default sort by newest
 
-  const filteredTransactions = mockTransactions.filter(transaction => {
-    const matchesSearch = 
-      transaction.id.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      transaction.orderId.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'All' || transaction.status === statusFilter;
-    return matchesSearch && matchesStatus;
+  // --- Data Fetching ---
+  const ADMIN_TRANSACTIONS_URL = '/admin/transactions/';
+
+  const { data: transactionsData, isLoading, error } = useQuery<ApiTransaction[]>({
+    queryKey: ['adminTransactions', statusFilter, methodFilter, searchTerm, sortField],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (statusFilter) params.append('status', statusFilter);
+      if (methodFilter) params.append('payment_method', methodFilter);
+      if (searchTerm) params.append('search', searchTerm);
+      if (sortField) params.append('ordering', sortField);
+      
+      const url = `${ADMIN_TRANSACTIONS_URL}?${params.toString()}`;
+      return apiClient<ApiTransaction[]>(url);
+    },
+    placeholderData: (prev) => prev,
   });
 
-  // Calculate total revenue from successful transactions
-  const totalRevenue = mockTransactions
-    .filter(t => t.status === 'Successful')
-    .reduce((sum, t) => sum + t.amount, 0);
+  // --- Event Handlers ---
+  const handleSort = (field: string) => {
+    const newSortField = sortField === field ? `-${field}` : field;
+    setSortField(newSortField);
+  };
+
+  // --- Render ---
+  if (isLoading) {
+    return (
+      <div className="flex flex-col justify-center items-center h-64">
+        <Infinity size="55" stroke="4" strokeLength="0.15" bgOpacity="0.1" speed="1.3" color="hsl(var(--primary))" />
+        <p className="text-muted-foreground font-medium mt-4">Loading transactions...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return <div className="text-destructive p-4 bg-destructive/10 rounded-md">Error loading transactions: {(error as Error).message}</div>;
+  }
+
+  const transactions = transactionsData || [];
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-heading font-bold mb-2">Transactions</h1>
-        <p className="text-muted-foreground">Monitor payment transactions and process refunds</p>
+    <div className="space-y-6 p-1">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-heading font-bold">Transaction History</h1>
+          <p className="text-muted-foreground">View all payment transactions.</p>
+        </div>
       </div>
-      
-      <div className="bg-canteen-primary/10 p-5 rounded-xl">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-canteen-primary">Total Revenue</p>
-            <h3 className="text-2xl font-bold text-canteen-primary mt-1">${totalRevenue.toFixed(2)}</h3>
+
+      {/* Filters and Table Card */}
+      <Card className="rounded-xl shadow-md border border-border/50">
+        <CardHeader className="border-b p-4">
+          <CardTitle className="text-lg">All Transactions</CardTitle>
+          {/* Filter Row */}
+           <div className="flex flex-col md:flex-row flex-wrap gap-3 mt-3">
+            <div className="relative w-full sm:w-auto md:flex-1 md:min-w-[200px]">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={16} />
+              <Input
+                placeholder="Search by Transaction ID, Order ID..."
+                className="pl-9 h-9"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <Select onValueChange={(value) => setStatusFilter(value === 'all' ? null : value as TransactionStatusType)} value={statusFilter ?? 'all'}>
+              <SelectTrigger className="w-full sm:w-auto h-9 md:w-[160px]">
+                  <SelectValue placeholder="Filter by Status" />
+              </SelectTrigger>
+              <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  {TRANSACTION_STATUSES.map(status => (
+                  <SelectItem key={status} value={status}>{status}</SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+            <Select onValueChange={(value) => setMethodFilter(value === 'all' ? null : value as PaymentMethodType)} value={methodFilter ?? 'all'}>
+              <SelectTrigger className="w-full sm:w-auto h-9 md:w-[160px]">
+                  <SelectValue placeholder="Filter by Method" />
+              </SelectTrigger>
+              <SelectContent>
+                  <SelectItem value="all">All Methods</SelectItem>
+                  {PAYMENT_METHODS.map(method => (
+                  <SelectItem key={method} value={method}>{method}</SelectItem>
+                  ))}
+              </SelectContent>
+           </Select>
+           {/* Add Date Range Filter if needed */}
           </div>
-          <Button size="sm" variant="outline" className="gap-2">
-            <Calendar size={16} />
-            Today
-          </Button>
-        </div>
-      </div>
-      
-      <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
-        <div className="relative w-full md:w-72">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-          <Input 
-            placeholder="Search transactions..." 
-            className="pl-10"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-        
-        <div className="flex gap-2 w-full md:w-auto">
-          <select 
-            className="bg-white border rounded-md px-3 py-2 text-sm"
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-          >
-            <option value="All">All Statuses</option>
-            <option value="Successful">Successful</option>
-            <option value="Pending">Pending</option>
-            <option value="Failed">Failed</option>
-            <option value="Refunded">Refunded</option>
-          </select>
-          
-          <Button variant="outline" size="sm">
-            <Filter size={18} className="mr-2" />
-            More Filters
-          </Button>
-        </div>
-      </div>
-      
-      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Transaction ID</TableHead>
-              <TableHead>Order ID</TableHead>
-              <TableHead>Amount</TableHead>
-              <TableHead>Method</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Time</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredTransactions.map((transaction) => (
-              <TableRow key={transaction.id}>
-                <TableCell className="font-medium">{transaction.id}</TableCell>
-                <TableCell>{transaction.orderId}</TableCell>
-                <TableCell>${transaction.amount.toFixed(2)}</TableCell>
-                <TableCell>{transaction.method}</TableCell>
-                <TableCell>
-                  <span className={`inline-block rounded-full px-2 py-1 text-xs font-semibold ${getStatusColor(transaction.status)}`}>
-                    {transaction.status}
-                  </span>
-                </TableCell>
-                <TableCell>{formatDateTime(transaction.timestamp)}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-        
-        {filteredTransactions.length === 0 && (
-          <div className="py-8 text-center text-gray-500">
-            No transactions matching your filters
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>
+                     <Button variant="ghost" size="sm" onClick={() => handleSort('transaction_id')} className="px-1">
+                      Transaction ID
+                      {sortField.includes('transaction_id') && <ArrowUpDown className="ml-1 h-3 w-3" />}
+                    </Button>
+                  </TableHead>
+                  <TableHead className="w-[90px]">
+                    <Button variant="ghost" size="sm" onClick={() => handleSort('order__id')} className="px-1">
+                      Order ID
+                      {sortField.includes('order__id') && <ArrowUpDown className="ml-1 h-3 w-3" />}
+                    </Button>
+                  </TableHead>
+                  <TableHead>
+                     <Button variant="ghost" size="sm" onClick={() => handleSort('payment_method')} className="px-1">
+                      Method
+                      {sortField.includes('payment_method') && <ArrowUpDown className="ml-1 h-3 w-3" />}
+                    </Button>
+                  </TableHead>
+                  <TableHead>
+                    <Button variant="ghost" size="sm" onClick={() => handleSort('amount')} className="px-1">
+                      Amount
+                       {sortField.includes('amount') && <ArrowUpDown className="ml-1 h-3 w-3" />}
+                    </Button>
+                  </TableHead>
+                  <TableHead>
+                     <Button variant="ghost" size="sm" onClick={() => handleSort('status')} className="px-1">
+                      Status
+                      {sortField === 'status' && <ArrowUpDown className="ml-1 h-3 w-3" />} 
+                      {sortField === '-status' && <ArrowUpDown className="ml-1 h-3 w-3" />} 
+                    </Button>
+                  </TableHead>
+                  <TableHead className="text-right">
+                     <Button variant="ghost" size="sm" onClick={() => handleSort('created_at')} className="px-1">
+                      Date
+                       {sortField.includes('created_at') && <ArrowUpDown className="ml-1 h-3 w-3" />}
+                    </Button>
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {transactions.length > 0 ? (
+                  transactions.map((tx) => (
+                    <TableRow key={tx.id} className="hover:bg-muted/50">
+                      <TableCell className="font-mono text-xs py-2 px-4 text-muted-foreground truncate max-w-[150px]" title={tx.transaction_id}>{tx.transaction_id}</TableCell>
+                      <TableCell className="font-medium py-2 px-4">#{tx.order.id}</TableCell>
+                      <TableCell className="py-2 px-4 text-muted-foreground">{tx.payment_method}</TableCell>
+                      <TableCell className="py-2 px-4">${parseFloat(tx.amount).toFixed(2)}</TableCell>
+                      <TableCell className="py-2 px-4">
+                         <Badge 
+                           variant={getTransactionStatusBadgeVariant(tx.status)} 
+                           className={`text-xs ${getTransactionStatusColorClasses(tx.status)}`}
+                         >
+                          {tx.status}
+                         </Badge>
+                      </TableCell>
+                      <TableCell className="text-right py-2 px-4 text-muted-foreground text-xs">
+                        {format(new Date(tx.created_at), 'MMM d, yyyy h:mm a')}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                      No transactions found matching your criteria.
+                      {(searchTerm || statusFilter || methodFilter) && (
+                         <Button variant="link" className="ml-2 text-sm" onClick={() => {setSearchTerm(''); setStatusFilter(null); setMethodFilter(null);}}>Clear filters</Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
           </div>
-        )}
-      </div>
+        </CardContent>
+        {/* Add Pagination if needed */}
+        {/* <CardFooter className="border-t p-4">
+           Pagination Controls
+        </CardFooter> */}
+      </Card>
     </div>
   );
 };

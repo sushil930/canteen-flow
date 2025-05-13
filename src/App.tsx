@@ -67,13 +67,19 @@ const App = () => (
 
             {/* Admin routes */}
             <Route path="/admin/login" element={<Login />} />
-            <Route path="/admin" element={<ProtectedRoute allowedRoles={['admin']} />}>
-              <Route index element={<Navigate to="/admin/dashboard" replace />} />
+            <Route 
+              path="/admin"
+              element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <AdminLayout /> 
+                </ProtectedRoute>
+              }
+            >
+              <Route index element={<Navigate to="dashboard" replace />} />
               <Route path="dashboard" element={<Dashboard />} />
               <Route path="orders" element={<Orders />} />
               <Route path="transactions" element={<Transactions />} />
               <Route path="menu" element={<MenuManagement />} />
-              {/* Removed the duplicate OrderHistory route from admin section */}
             </Route>
 
             <Route path="*" element={<NotFound />} />

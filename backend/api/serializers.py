@@ -55,7 +55,7 @@ class MenuItemWriteSerializer(serializers.ModelSerializer):
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'username', 'first_name', 'last_name', 'email']
+        fields = ['id', 'username', 'first_name', 'last_name', 'email', 'is_staff', 'is_superuser']
         # Add other fields as needed, but be careful about exposing sensitive info
 
 # --- Read/List Serializers continued ---
@@ -77,7 +77,7 @@ class OrderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
         fields = ('id', 'customer', 'canteen', 'created_at', 'updated_at', 'status', 'total_price', 'notes', 'table_number', 'items')
-        read_only_fields = ['total_amount', 'created_at', 'updated_at'] # Usually calculated/set by backend
+        read_only_fields = ['total_price', 'created_at', 'updated_at'] # Usually calculated/set by backend
 
 # --- Write/Create Serializers (Simpler, often using IDs for relationships) ---
 
