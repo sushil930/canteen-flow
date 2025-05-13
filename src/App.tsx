@@ -50,19 +50,16 @@ const App = () => (
             {/* Customer routes (Public) */}
             <Route path="/" element={<Index />} />
             <Route path="/canteen/:canteenId/table" element={<TableSelection />} />
-            {/* Removed /menu from public routes as it should likely be protected */}
+            <Route path="/canteen/:canteenId/menu" element={<Menu />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
+            <Route path="/order-summary" element={<OrderSummary />} />
+            <Route path="/payment" element={<Payment />} />
 
-            {/* Authenticated Routes (Customer) */}
+            {/* Authenticated Routes (Customer) - For things AFTER placing an order? */}
             <Route element={<ProtectedRoute allowedRoles={['customer']} />}>
-              <Route path="/menu" element={<Menu />} />
-              <Route path="/order-summary" element={<OrderSummary />} />
-              <Route path="/payment" element={<Payment />} />
               <Route path="/order-confirmation/:orderId" element={<OrderConfirmation />} />
-              {/* OrderStatus now handles history, ensure param is optional or handled */}
-              <Route path="/order-status/:orderId?" element={<OrderStatus />} /> 
-              {/* Removed: <Route path="/order-history" element={<OrderHistory />} /> */}
+              <Route path="/order-status/:orderId?" element={<OrderStatus />} />
             </Route>
 
             {/* Admin routes */}
