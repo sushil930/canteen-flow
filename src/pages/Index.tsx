@@ -1,6 +1,6 @@
 import React, { useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Utensils, Building, ArrowRight, Coffee, ShoppingBag, ChevronRight, ArrowDown, Users, CalendarClock, Star, Bell } from 'lucide-react';
+import { Utensils, Building, ArrowRight, Coffee, ShoppingBag, ChevronRight, ArrowDown, Users, CalendarClock, Star, Bell, Heart, ThumbsUp } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api';
 import { OrderContext } from '@/contexts/OrderContext';
@@ -861,6 +861,11 @@ const LandingPage = () => {
             </div>
           </div>
           
+          {/* Feedback Section Integrated into Footer */}
+          <div className="my-6">
+            <FeedbackSection />
+          </div>
+
           <div className="border-t border-gray-200 pt-8 flex flex-col md:flex-row justify-between items-center">
             <p className="text-gray-500 text-sm mb-4 md:mb-0">© 2025 Canteen Flow. All rights reserved.</p>
             <div className="flex space-x-6">
@@ -879,6 +884,103 @@ const LandingPage = () => {
         </div>
       </footer>
     </div>
+  );
+};
+
+// NEW FeedbackSection Component
+const FeedbackSection = () => {
+  const [rating, setRating] = useState(0);
+  const [hoverRating, setHoverRating] = useState(0);
+  const [submitted, setSubmitted] = useState(false);
+
+  const handleSetRating = (rate: number) => {
+    setRating(rate);
+    if (!submitted) setSubmitted(true);
+  };
+
+  return (
+    <section className="py-6 bg-gray-50">
+      <div className="container mx-auto px-4 max-w-md text-center">
+        {!submitted ? (
+          <>
+            <motion.h2 
+              initial={{ opacity: 0, y: 10 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4 }}
+              viewport={{ once: true }}
+              className="text-xl font-semibold text-gray-700 mb-3"
+            >
+              Rate Your Experience
+            </motion.h2>
+            
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.1 }}
+              viewport={{ once: true }}
+              className="flex flex-col items-center"
+            >
+              <div className="flex items-center space-x-1 mb-2">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <Star
+                    key={star}
+                    className={`h-7 w-7 cursor-pointer transition-all duration-150 ease-in-out transform hover:scale-110 ${ 
+                      (hoverRating || rating) >= star
+                        ? 'text-yellow-400 fill-yellow-400'
+                        : 'text-gray-300 hover:text-yellow-300'
+                    }`}
+                    onMouseEnter={() => setHoverRating(star)}
+                    onMouseLeave={() => setHoverRating(0)}
+                    onClick={() => handleSetRating(star)}
+                  />
+                ))}
+              </div>
+              {rating > 0 && (
+                <motion.p 
+                  initial={{ opacity: 0, y: 5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="text-sm text-gray-500 mt-1"
+                >
+                  You rated: {rating} out of 5
+                </motion.p>
+              )}
+            </motion.div>
+          </>
+        ) : (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.4, ease: "easeOut" }}
+            className="py-8"
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.5 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.4, delay: 0.1, type: "spring", stiffness: 200, damping: 10 }}
+            >
+              <ThumbsUp className="h-12 w-12 text-[#ff6433] mx-auto mb-4" />
+            </motion.div>
+            <motion.h3 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.2 }}
+              className="text-2xl font-semibold text-gray-700 mb-2"
+            >
+              Thank You!
+            </motion.h3>
+            <motion.p 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.3 }}
+              className="text-gray-500 text-sm max-w-xs mx-auto"
+            >
+              Your feedback is appreciated!
+            </motion.p>
+          </motion.div>
+        )}
+      </div>
+    </section>
   );
 };
 

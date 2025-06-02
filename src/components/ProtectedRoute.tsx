@@ -37,5 +37,5 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowe
     }
 
     // 4. User is authenticated (and has the correct role if required), render the children
-    return <>{children}</>; // Render children instead of Outlet
+    return <Outlet />;
 }; 

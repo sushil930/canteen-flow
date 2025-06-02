@@ -58,14 +58,14 @@ export interface ApiAdminOrder {
 }
 
 // Helper to get badge variant based on status
-export const getStatusBadgeVariant = (status: OrderStatusType): "default" | "secondary" | "outline" | "destructive" | "success" => {
+export const getStatusBadgeVariant = (status: OrderStatusType): "default" | "secondary" | "outline" | "destructive" => {
   switch (status) {
     case 'PENDING': return 'outline';
     case 'PROCESSING': return 'secondary';
-    case 'COMPLETED': return 'success';
-    case 'DELIVERED': return 'success'; // Assuming delivered is also a success state
+    case 'COMPLETED': return 'default';
+    case 'DELIVERED': return 'default';
     case 'CANCELLED': return 'destructive';
-    default: return 'default';
+    default: return 'outline';
   }
 };
 

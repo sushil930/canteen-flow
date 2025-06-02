@@ -170,12 +170,6 @@ const Header: React.FC = () => {
                     Current Orders
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/order-history" className="w-full cursor-pointer">
-                    <History className="mr-2 h-4 w-4 text-[#ff6433]" />
-                    Order History
-                  </Link>
-                </DropdownMenuItem>
                 {user.is_staff && (
                   <DropdownMenuItem asChild>
                     <Link to="/admin/dashboard" className="flex items-center cursor-pointer">

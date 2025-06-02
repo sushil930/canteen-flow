@@ -187,6 +187,15 @@ const Dashboard = () => {
 
   return (
     <div className="flex-1 space-y-6 p-4 md:p-8 pt-6">
+      {/* Under Construction Banner */}
+      <div className="mb-6 p-4 bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 rounded-md flex items-center">
+        <Activity size={20} className="mr-3 text-yellow-600" /> {/* Using Activity icon for now, can change */}
+        <div>
+          <p className="font-bold">Under Construction</p>
+          <p className="text-sm">This page is currently being developed. Some features may not be fully functional.</p>
+        </div>
+      </div>
+
       {/* Dashboard Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
         <div>
