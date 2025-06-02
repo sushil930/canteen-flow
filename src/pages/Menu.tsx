@@ -1,5 +1,5 @@
 import React, { useState, useContext, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Loader2, Utensils, Plus, Minus, Search, Filter, ShoppingCart, AlertCircle } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api';
@@ -43,17 +43,28 @@ interface MenuData {
 
 const Menu = () => {
   const navigate = useNavigate();
-  const { addItem, items, selectedCanteenId, updateQuantity } = useContext(OrderContext);
+  const { canteenId: canteenIdParam } = useParams<{ canteenId: string }>();
+  const { 
+    addItem, 
+    items, 
+    selectedCanteenId, 
+    setSelectedCanteenId,
+    updateQuantity 
+  } = useContext(OrderContext);
   const [activeCategory, setActiveCategory] = useState<number | string>('All');
   const [searchTerm, setSearchTerm] = useState('');
 
-  useEffect(() => {
-    // Scroll to top when component mounts
-    window.scrollTo(0, 0);
-  }, []);
+  const canteenId = canteenIdParam ? parseInt(canteenIdParam, 10) : null;
 
-  if (!selectedCanteenId) {
-    console.warn("No canteen selected, redirecting to home.");
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    if (canteenId !== null && !isNaN(canteenId) && canteenId !== selectedCanteenId) {
+      setSelectedCanteenId(canteenId);
+    }
+  }, [canteenId, selectedCanteenId, setSelectedCanteenId]);
+
+  if (canteenId === null || isNaN(canteenId)) {
+    console.error("Invalid or missing canteenId in URL, redirecting to home.");
     useEffect(() => {
       navigate('/');
     }, [navigate]);
@@ -61,20 +72,20 @@ const Menu = () => {
       <div className="flex justify-center items-center h-screen bg-gradient-to-b from-white to-gray-50">
         <div className="bg-white p-6 rounded-xl shadow-sm text-center">
           <AlertCircle className="h-8 w-8 text-amber-500 mx-auto mb-3" />
-          <p className="text-gray-700">No canteen selected. Redirecting...</p>
+          <p className="text-gray-700">Invalid Canteen ID. Redirecting...</p>
         </div>
       </div>
     );
   }
 
   const menuQuery = useQuery<MenuData, Error>({
-    queryKey: ['menu', selectedCanteenId],
+    queryKey: ['menu', canteenId],
     queryFn: async () => {
-      const categories = await apiClient<ApiCategory[]>(`/categories/?canteen=${selectedCanteenId}`);
-      const menuItems = await apiClient<ApiMenuItem[]>(`/menu-items/?canteen=${selectedCanteenId}`);
+      const categories = await apiClient<ApiCategory[]>(`/categories/?canteen=${canteenId}`);
+      const menuItems = await apiClient<ApiMenuItem[]>(`/menu-items/?canteen=${canteenId}`);
       return { categories, menuItems };
     },
-    enabled: !!selectedCanteenId,
+    enabled: canteenId !== null && !isNaN(canteenId),
   });
 
   const handleAddItem = (menuItem: ApiMenuItem) => {

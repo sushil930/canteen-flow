@@ -50,7 +50,7 @@ const TableSelection = () => {
     }
 
     setTableNumber(selectedTable.toString());
-    navigate('/menu');
+    navigate(`/canteen/${canteenId}/menu`);
   };
 
   const handleSelectTable = (table: Table) => {
