@@ -65,12 +65,12 @@ export async function apiClient<T>(
     try {
         data = await response.json();
     } catch (error) {
-        // Handle cases where response is not JSON
+        const text = await response.text();
+        console.error("Raw response text from API:", text); // Add this line
         if (!response.ok) {
             throw new Error(response.statusText || 'API request failed with non-JSON response');
         }
-        // If response was OK but not JSON (unlikely for our DRF API, but possible)
-        data = undefined;
+    data = undefined;
     }
 
     if (!response.ok) {
