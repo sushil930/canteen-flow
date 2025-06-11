@@ -5,3 +5,6 @@ dj-rest-auth[with_framework_token]
 django-filter
 django-cors-headers
 django-allauth 
+gunicorn
+whitenoise
+dj-database-url
