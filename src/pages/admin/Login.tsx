@@ -40,7 +40,7 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      const data = await apiClient<LoginResponse>('/auth/login/', {
+      const data = await apiClient<LoginResponse>('/dj-rest-auth/login/', {
         method: 'POST',
         body: JSON.stringify(values),
       });
