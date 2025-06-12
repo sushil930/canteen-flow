@@ -170,7 +170,7 @@ CORS_ALLOW_ALL_ORIGINS = False
 # Also add these specific configurations:
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = [
-    "https://canteen-flow.vercel.app/",
+    "https://canteen-flow.vercel.app",
 ]
 
 
