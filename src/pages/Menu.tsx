@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { Infinity } from 'ldrs/react';
 import 'ldrs/react/Infinity.css';
+import { useAuth } from '@/contexts/AuthContext';
 
 // Derive backend origin from API base URL (assuming it ends with /api)
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api';
@@ -34,6 +35,7 @@ interface ApiMenuItem {
   price: string;
   image: string | null;
   category: number;
+  image_prompt?: string;
 }
 
 interface MenuData {
@@ -53,6 +55,7 @@ const Menu = () => {
   } = useContext(OrderContext);
   const [activeCategory, setActiveCategory] = useState<number | string>('All');
   const [searchTerm, setSearchTerm] = useState('');
+  const { isGuest } = useAuth();
 
   const canteenId = canteenIdParam ? parseInt(canteenIdParam, 10) : null;
 
@@ -81,6 +84,36 @@ const Menu = () => {
   const menuQuery = useQuery<MenuData, Error>({
     queryKey: ['menu', canteenId],
     queryFn: async () => {
+        if (isGuest) {
+            const mockCategories: ApiCategory[] = [
+                { id: 1, name: 'Meals', canteen: canteenId! },
+                { id: 2, name: 'Snacks', canteen: canteenId! },
+                { id: 3, name: 'Drinks', canteen: canteenId! },
+            ];
+            const mockItems: ApiMenuItem[] = [
+                { 
+                    id: 1, name: 'Veg Thali', description: 'A complete meal with rice, roti, dal, and sabzi.', price: '120.00', image: 'https://i.ibb.co/8LrdxMtm/Firefly-A-vibrant-Indian-Veg-Thali-on-a-clean-round-stainless-steel-plate-The-thali-should-177735.jpg', category: 1,
+                    image_prompt: "A vibrant Indian Veg Thali on a clean, round, stainless steel plate. The thali should feature a mound of fluffy white rice, two folded chapatis, a small bowl of yellow dal, a bowl of mixed vegetable curry, and a side of green chutney. Professional food photography, top-down view, appetizing, with a slightly blurred restaurant background."
+                },
+                { 
+                    id: 2, name: 'Samosa', description: 'Crispy pastry filled with spiced potatoes.', price: '20.00', image: 'https://i.ibb.co/whnCFmWr/Firefly-Two-crispy-golden-brown-samosas-on-a-clean-white-plate-One-samosa-is-whole-and-the-303110.jpg', category: 2,
+                    image_prompt: "Two crispy, golden-brown samosas on a clean white plate. One samosa is whole, and the other is broken open to show the steamy, spiced potato and pea filling. A small bowl of tamarind chutney is next to them. Professional food photography, close-up shot, appetizing, with a slightly blurred background."
+                },
+                { 
+                    id: 3, name: 'Masala Chai', description: 'Aromatic and spiced Indian tea.', price: '15.00', image: 'https://i.ibb.co/Sw3HXyp9/Firefly-A-steaming-cup-of-Indian-masala-chai-in-a-traditional-clay-cup-kulhad-The-tea-is-a-177735.jpg', category: 3,
+                    image_prompt: "A steaming cup of Indian masala chai in a traditional clay cup (kulhad). The tea is a warm, milky brown color. A couple of cinnamon sticks and star anise are placed beside the cup on a rustic wooden surface. Professional food photography, eye-level shot, appetizing, with a cozy, warm ambiance."
+                },
+                { 
+                    id: 4, name: 'Paneer Butter Masala', description: 'Rich and creamy paneer dish.', price: '150.00', image: 'https://i.ibb.co/HfmYMZBw/Firefly-A-rich-and-creamy-Paneer-Butter-Masala-in-a-traditional-Indian-copper-bowl-kadai-T-759634.jpg', category: 1,
+                    image_prompt: "A rich and creamy Paneer Butter Masala in a traditional Indian copper bowl (kadai). The gravy is a vibrant orange color, garnished with a swirl of cream and fresh cilantro. A piece of paneer should be visible. Professional food photography, close-up shot, appetizing, with a slightly blurred, warm background."
+                },
+                { 
+                    id: 6, name: 'Vada Pav', description: 'The classic Mumbai street food.', price: '30.00', image: 'https://i.ibb.co/Rp73SYpL/Firefly-A-classic-Mumbai-Vada-Pav-on-a-simple-white-plate-The-pav-bread-roll-is-soft-and-106596.jpg', category: 2,
+                    image_prompt: "A classic Mumbai Vada Pav on a simple white plate. The pav (bread roll) is soft, and the vada (potato fritter) is golden and crispy, sandwiched in between with a layer of green chutney. Professional food photography, close-up shot, appetizing, against a clean, slightly out-of-focus background."
+                },
+            ];
+            return Promise.resolve({ categories: mockCategories, menuItems: mockItems });
+        }
       const categories = await apiClient<ApiCategory[]>(`/categories/?canteen=${canteenId}`);
       const menuItems = await apiClient<ApiMenuItem[]>(`/menu-items/?canteen=${canteenId}`);
       return { categories, menuItems };
@@ -299,7 +332,7 @@ const Menu = () => {
                   className="flex rounded-xl overflow-hidden border border-gray-100 bg-white shadow-sm hover:shadow-md transition-shadow"
                 >
                   {/* Image */}
-                  <div className="w-24 h-24 md:w-32 md:h-32 bg-gray-100 flex-shrink-0">
+                  <div className="w-32 h-32 bg-gray-100 flex-shrink-0">
                     {fullImageUrl ? (
                       <img
                         src={fullImageUrl}

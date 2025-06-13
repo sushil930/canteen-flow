@@ -4,10 +4,10 @@ import { Utensils, Building, ArrowRight, Coffee, ShoppingBag, ChevronRight, Arro
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api';
 import { OrderContext } from '@/contexts/OrderContext';
-import { useAuth } from '@/contexts/AuthContext';
 import { motion } from "framer-motion";
 import { Button } from '@/components/ui/button';
 import Header from '@/components/Header';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ApiCanteen {
   id: number;
@@ -988,10 +988,21 @@ const FeedbackSection = () => {
 const CanteenSelectionPage = () => {
   const navigate = useNavigate();
   const { setSelectedCanteenId } = useContext(OrderContext);
+  const { isGuest } = useAuth();
 
   const canteensQuery = useQuery<ApiCanteen[], Error>({
     queryKey: ['canteens'],
-    queryFn: () => apiClient<ApiCanteen[]>('/canteens/'),
+    queryFn: () => {
+        if (isGuest) {
+            // Return mock data for guests
+            return Promise.resolve([
+                { id: 1, name: 'Main Campus Canteen', description: 'The biggest and most popular canteen on campus.' },
+                { id: 2, name: 'Engineering Block Cafe', description: 'Quick bites and coffee for the engineering students.' },
+                { id: 3, name: 'Library Coffee Shop', description: 'Quiet spot for a study break with great snacks.' },
+            ]);
+        }
+        return apiClient<ApiCanteen[]>('/canteens/');
+    },
   });
 
   const handleSelectCanteen = (canteenId: number) => {
@@ -1143,8 +1154,17 @@ const CanteenSelectionPage = () => {
 };
 
 const Index = () => {
-  const { user } = useAuth();
-  
+  const { user, isLoading } = useAuth();
+
+  if (isLoading) {
+      return (
+          <div className="flex flex-col justify-center items-center min-h-screen bg-gradient-to-b from-white to-gray-50">
+            <div className="h-8 w-8 border-t-2 border-b-2 border-primary rounded-full animate-spin mb-4"></div>
+            <p className="text-gray-600 font-medium">Loading...</p>
+          </div>
+      );
+  }
+
   // Show landing page for non-logged-in users, and canteen selection for logged-in users
   return user ? <CanteenSelectionPage /> : <LandingPage />;
 };

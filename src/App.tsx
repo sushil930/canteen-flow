@@ -57,10 +57,8 @@ const App = () => (
             <Route path="/payment" element={<Payment />} />
 
             {/* Authenticated Routes (Customer) - For things AFTER placing an order? */}
-            <Route element={<ProtectedRoute allowedRoles={['customer']} />}>
-              <Route path="/order-confirmation/:orderId" element={<OrderConfirmation />} />
-              <Route path="/order-status/:orderId?" element={<OrderStatus />} />
-            </Route>
+            <Route path="/order-confirmation/:orderId" element={<OrderConfirmation />} />
+            <Route path="/order-status/:orderId?" element={<OrderStatus />} />
 
             {/* Admin routes */}
             <Route path="/admin/login" element={<Login />} />

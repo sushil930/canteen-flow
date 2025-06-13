@@ -34,6 +34,7 @@ MIDDLEWARE = [
 # CORS Configuration
 # Ensure this matches your frontend development server URL
 CORS_ALLOWED_ORIGINS = [
+    "http://localhost:8080",
     "http://localhost:5173", # Vite default
     "http://127.0.0.1:5173",
 ]

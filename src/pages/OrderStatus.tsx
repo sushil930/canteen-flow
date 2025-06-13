@@ -51,7 +51,7 @@ interface OrderHistoryItem {
 const OrderStatus = () => {
   const navigate = useNavigate();
   const { orderId: paramOrderId } = useParams<{ orderId: string }>();
-  const { user } = useAuth();
+  const { user, isGuest } = useAuth();
   const { toast } = useToast();
   const { clearCart, addItem, setSelectedCanteenId } = useOrder();
 
@@ -66,7 +66,15 @@ const OrderStatus = () => {
 
   const { data: currentOrderData, isLoading: isLoadingCurrent, error: currentError, isError: isCurrentError } = useQuery<CurrentOrderStatus>({
     queryKey: ['orderStatus', currentOrderId],
-    queryFn: () => apiClient<CurrentOrderStatus>(`/orders/${currentOrderId}/`),
+    queryFn: () => {
+        if (isGuest && currentOrderId) {
+            return Promise.resolve({
+                id: parseInt(currentOrderId),
+                status: 'PROCESSING',
+            });
+        }
+        return apiClient<CurrentOrderStatus>(`/orders/${currentOrderId}/`)
+    },
     enabled: !!currentOrderId,
     refetchInterval: 5000,
     refetchIntervalInBackground: true,
@@ -74,7 +82,12 @@ const OrderStatus = () => {
 
   const { data: historyOrders, isLoading: isLoadingHistory, error: historyError } = useQuery<OrderHistoryItem[]>({
     queryKey: ['orderHistory'],
-    queryFn: () => apiClient<OrderHistoryItem[]>('/orders/'),
+    queryFn: () => {
+        if (isGuest) {
+            return Promise.resolve([]); // No order history for guests
+        }
+        return apiClient<OrderHistoryItem[]>('/orders/')
+    },
     enabled: !!user,
   });
 

@@ -44,7 +44,7 @@ const Payment = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { items, getTotalPrice, clearCart, selectedCanteenId, tableNumber } = useContext(OrderContext);
-  const { user } = useAuth();
+  const { user, isGuest } = useAuth();
   const { Razorpay: RazorpayCheckout, isLoading: isRazorpayLoading, error: razorpayHookError } = useRazorpay(); 
   const queryClient = useQueryClient();
   const [orderNotes, setOrderNotes] = useState('');
@@ -53,6 +53,11 @@ const Payment = () => {
   // --- Mutations (createRazorpayOrderMutation, verifyPaymentMutation) remain the same --- 
   const createRazorpayOrderMutation = useMutation<CreateRazorpayOrderResponse, Error, { amount: number }>({ 
     mutationFn: async ({ amount }) => {
+        if (isGuest) {
+            // Mock creating a Razorpay order for guests
+            toast({ title: "Guest Mode", description: "Simulating payment initiation..." });
+            return Promise.resolve({ order_id: `guest_order_${Date.now()}` });
+        }
       return apiClient<CreateRazorpayOrderResponse>('/payment/create-razorpay-order/', {
         method: 'POST',
         body: JSON.stringify({ amount: Math.round(amount * 100) }), 
@@ -66,6 +71,12 @@ const Payment = () => {
 
   const verifyPaymentMutation = useMutation<VerifyPaymentResponse, Error, VerifyPaymentPayload>({ 
     mutationFn: async (paymentData) => {
+        if (isGuest) {
+            // Mock payment verification for guests
+            toast({ title: "Guest Mode", description: "Simulating payment verification..." });
+            const mockOrderId = Math.floor(Math.random() * 100000);
+            return Promise.resolve({ success: true, orderId: mockOrderId });
+        }
       return apiClient<VerifyPaymentResponse>('/payment/verify-payment/', {
         method: 'POST',
         body: JSON.stringify(paymentData),
@@ -124,6 +135,24 @@ const Payment = () => {
 
   // --- MODIFIED: Handle Initiate Payment function ---
   const handlePayment = async () => {
+    if (isGuest) {
+        // Simulate the entire payment flow for guests
+        const totalAmount = getTotalPrice();
+        const mockPaymentData: VerifyPaymentPayload = {
+            razorpay_payment_id: `guest_payment_${Date.now()}`,
+            razorpay_order_id: `guest_order_${Date.now()}`,
+            razorpay_signature: 'guest_signature',
+            local_order_details: {
+                canteen: selectedCanteenId,
+                table_number: tableNumber,
+                items: items.map(item => ({ menu_item_id: item.menuItemId, quantity: item.quantity })),
+                total_price: totalAmount,
+                notes: orderNotes,
+            }
+        };
+        verifyPaymentMutation.mutate(mockPaymentData);
+        return;
+    }
     if (isRazorpayLoading) {
       toast({ title: "Payment Gateway Loading", description: "Please wait for the payment gateway to finish loading.", variant: "default" });
       return;
@@ -138,11 +167,6 @@ const Payment = () => {
     }
     if (!razorpayKeyId) {
       toast({ title: "Configuration Error", description: "Payment gateway is not configured.", variant: "destructive" });
-      return;
-    }
-    if (!user) {
-      toast({ title: "Authentication Error", description: "Please log in to place an order.", variant: "destructive" });
-      navigate('/login'); 
       return;
     }
     if (!selectedCanteenId) {
@@ -175,9 +199,12 @@ const Payment = () => {
              console.log('Checkout form closed');
            }
         },
-        prefill: {
+        prefill: user ? {
           name: user.first_name ? `${user.first_name} ${user.last_name || ''}`.trim() : user.username,
           email: user.email,
+        } : {
+          name: 'Guest User',
+          email: 'guest@example.com'
         },
         notes: { 
           canteenId: selectedCanteenId?.toString(),

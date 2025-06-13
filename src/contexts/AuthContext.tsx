@@ -15,8 +15,10 @@ interface AuthContextProps {
     user: User | null;
     token: string | null;
     isLoading: boolean;
+    isGuest: boolean; // Add isGuest flag
     login: (token: string) => Promise<void>;
     logout: () => void;
+    loginAsGuest: () => void; // Add guest login function
 }
 
 const AuthContext = createContext<AuthContextProps | undefined>(undefined);
@@ -25,6 +27,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const [user, setUser] = useState<User | null>(null);
     const [token, setToken] = useState<string | null>(getAuthToken()); // Initialize token from storage
     const [isLoading, setIsLoading] = useState<boolean>(true); // Start loading until user is fetched
+    const [isGuest, setIsGuest] = useState<boolean>(false); // State to track guest status
 
     const fetchUser = async (authToken: string) => {
         setIsLoading(true);
@@ -33,6 +36,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             const userData = await apiClient<User>('/user/'); // Fetch user data from backend
             setUser(userData);
             setToken(authToken); // Confirm token is set
+            setIsGuest(false); // It's a real user
         } catch (error) {
             console.error("Failed to fetch user:", error);
             // If fetching user fails (e.g., invalid token), clear auth state
@@ -46,7 +50,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     useEffect(() => {
         const currentToken = getAuthToken();
-        if (currentToken) {
+        if (currentToken === 'guest-token') {
+             // Handle guest user on initial load
+            loginAsGuest();
+        } else if (currentToken) {
             fetchUser(currentToken);
         } else {
             setIsLoading(false); // No token, stop loading
@@ -57,10 +64,29 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         await fetchUser(newToken); // Fetch user immediately after login
     };
 
+    const loginAsGuest = () => {
+        setIsLoading(true);
+        const guestUser: User = {
+            id: 999,
+            username: 'guest',
+            email: 'guest@example.com',
+            first_name: 'Guest',
+            last_name: 'User',
+            is_staff: false,
+            is_superuser: false,
+        };
+        setUser(guestUser);
+        setToken('guest-token'); // Use a special token for guest
+        localStorage.setItem('authToken', 'guest-token');
+        setIsGuest(true);
+        setIsLoading(false);
+    };
+
     const logout = () => {
         clearApiClientToken();
         setUser(null);
         setToken(null);
+        setIsGuest(false);
         // Optionally redirect to login or home page
         // navigate('/login'); 
     };
@@ -69,8 +95,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         user,
         token,
         isLoading,
+        isGuest,
         login,
         logout,
+        loginAsGuest,
     };
 
     return (
