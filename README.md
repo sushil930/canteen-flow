@@ -4,266 +4,201 @@
 
 **Project Status:** 🚧 In Development
 
-Canteen Flow is a full-stack web application that simplifies food ordering in a campus environment. Students can easily browse menus, place orders, and track them — while canteen staff manage everything through a powerful admin dashboard.
+Canteen Flow is a full-stack web application designed to streamline the food ordering process in a campus environment. It allows students to browse menus from various canteens, place orders, and make payments online, while providing canteen staff with a powerful dashboard to manage orders and menu items.
+
+This project features a decoupled architecture with a Django REST backend and a React (Vite) frontend. It also includes a **Guest Mode** to allow for full exploration of the frontend without requiring a backend connection or user authentication.
 
 ---
 
 ## 📑 Table of Contents
 
-- [Features](#features)
-- [Technology Stack](#technology-stack)
-- [Architecture](#architecture)
-- [File Structure](#file-structure)
-- [Getting Started](#getting-started)
+- [Features](#-features)
+- [Technology-Stack](#-technology-stack)
+- [Getting-Started](#-getting-started)
   - [Prerequisites](#prerequisites)
-  - [Installation](#installation)
-  - [Running the Application](#running-the-application)
-  - [Troubleshooting](#troubleshooting)
-- [Environment Variables](#environment-variables)
-- [API Overview](#api-overview)
-- [Deployment](#deployment)
-- [Contributing](#contributing)
-- [License](#license)
+  - [Backend-Setup](#backend-setup)
+  - [Frontend-Setup](#frontend-setup)
+  - [Running-the-Application](#-running-the-application)
+- [Environment-Variables](#-environment-variables)
+- [Deployment](#-deployment)
+- [Contributing](#-contributing)
+- [License](#-license)
 
 ---
 
 ## ✅ Features
 
 ### User Side:
-- 🔍 **Browse Canteens**: Explore available food vendors on campus.
-- 📋 **Menu Viewing**: See item descriptions, prices, and images.
-- 🛒 **Order Management**: Add items to cart and place orders seamlessly.
-- 🕒 **Order History**: Track current and past orders.
-- 👤 **User Profiles** *(coming soon)*: Manage account details.
+- 🔍 **Browse Canteens & Menus**: Explore available canteens and view their menus with item descriptions, prices, and images.
+- 🛒 **Shopping Cart**: Add and manage items in a persistent cart.
+- 💳 **Guest Checkout**: A fully simulated payment and order status flow for guest users.
+- 👤 **Authentication**: Standard login/registration flow for real users.
+- 🕒 **Order History & Status**: Track the status of current and past orders.
 
 ### Admin Side:
-- 📊 **Dashboard**: View orders, users, and menus at a glance.
-- 🧾 **Menu Management**: Add/edit/delete items and control availability.
-- 📦 **Order Processing**: Update order statuses: Preparing, Ready, Delivered.
-- 🏪 **Canteen Management** *(optional)*: Edit canteen info and availability.
+- 📊 **Dashboard**: An overview of orders, revenue, and popular items.
+- 📦 **Order Management**: View incoming orders and update their status (e.g., Preparing, Ready).
+- 🍔 **Menu Management**: Add, edit, or delete canteens, categories, and menu items.
 
 ---
 
 ## 🛠️ Technology Stack
 
 ### 🔹 Frontend
-- **Framework**: React (Vite)
-- **UI Library**: Shadcn/ui (Radix UI + Tailwind CSS)
-- **Routing**: React Router
-- **Data Fetching**: TanStack Query (React Query)
-- **Animation**: Framer Motion, ldrs
+- **Framework**: React (with Vite)
 - **Language**: TypeScript
+- **UI Library**: Shadcn UI (Radix UI + Tailwind CSS)
+- **Routing**: React Router
+- **State Management**: TanStack Query (React Query) & React Context
+- **Animations**: Framer Motion
 
 ### 🔹 Backend
-- **Framework**: Django + Django REST Framework
-- **Authentication**: `dj-rest-auth` + `django-allauth`
-- **ORM**: Django ORM
-- **CORS Handling**: `django-cors-headers`
+- **Framework**: Django & Django REST Framework
 - **Language**: Python
+- **Authentication**: `dj-rest-auth` & `django-allauth`
+- **Database**: PostgreSQL (local) / Supabase (production)
+- **CORS**: `django-cors-headers`
 
-### 🔹 External Services
-- **Database**: Supabase (PostgreSQL)
-- **Storage**: Supabase Storage
+### 🔹 External Services & Dev Tools
 - **Payments**: Razorpay
-
-### 🔹 Dev Tools
+- **Deployment**: Vercel (Frontend), Render (Backend)
 - **Package Managers**: npm, pip
 - **Version Control**: Git
 
 ---
 
-## 🧱 Architecture
-
-Canteen Flow follows a decoupled client-server architecture:
-
-- **Frontend**: SPA built with React + Vite. Handles UI and API calls.
-- **Backend**: RESTful API with Django/DRF. Handles logic, DB ops, and authentication.
-- **Database**: Supabase PostgreSQL instance.
-- **File Storage**: Images and media stored via Supabase Storage.
-- **API Format**: RESTful, JSON-based communication.
-
----
-
-## 📁 File Structure
-
-```bash
-canteen-flow/
-├── backend/         # Django + DRF Backend
-│   ├── manage.py
-│   ├── ...
-├── frontend/        # React + Vite Frontend
-│   ├── src/
-│   ├── ...
-├── README.md
-├── .gitignore
-└── ...
-```
-
----
-
 ## 🚀 Getting Started
 
-### ✅ Prerequisites
+### Prerequisites
 
-- [Python 3.8+](https://www.python.org/)
-- [Node.js (LTS)](https://nodejs.org/)
-- [Git](https://git-scm.com/)
+- [Python (3.8+)]()
+- [Node.js (LTS)]()
+- [Git]()
 
 ---
 
-### 📦 Installation
+### Backend Setup
 
-#### 1. Clone the Repository
+1.  **Navigate to the backend directory:**
+    ```bash
+    cd backend
+    ```
 
-```bash
-git clone https://github.com/sushil930/canteen-flow.git
-cd canteen-flow
-```
+2.  **Create and activate a virtual environment:**
+    ```bash
+    # Create the virtual environment
+    python -m venv venv
 
-#### 2. Backend Setup
+    # Activate on Windows
+    .\venv\Scripts\activate
 
-```bash
-cd backend
-python -m venv venv
-# Activate virtual env:
-# Windows:
-.\venv\Scripts\activate
-# macOS/Linux:
-source venv/bin/activate
+    # Activate on macOS/Linux
+    source venv/bin/activate
+    ```
 
-pip install -r requirements.txt
-# Create `.env` in this directory (see Environment Variables section)
-python manage.py makemigrations
-python manage.py migrate
-python manage.py createsuperuser
-```
+3.  **Install dependencies:**
+    ```bash
+    pip install -r requirements.txt
+    ```
 
-#### 3. Frontend Setup
+4.  **Set up environment variables:**
+    - Create a file named `.env` inside the `backend/` directory.
+    - Copy the contents from the [Backend Environment Variables](#backend-backendenv) section below into this file and fill in your credentials.
 
-```bash
-cd ../frontend
-npm install   # or yarn / bun install
+5.  **Run database migrations and create a superuser:**
+    ```bash
+    python manage.py migrate
+    python manage.py createsuperuser
+    ```
 
-# Setup environment
-cp .env.example .env
-# Update values in `.env` (see Environment Variables section)
-```
+---
+
+### Frontend Setup
+
+1.  **Navigate to the project root directory** (if you are in the `backend` directory, go back one level).
+    ```bash
+    cd ..
+    ```
+
+2.  **Install Node.js dependencies:**
+    ```bash
+    npm install
+    ```
+
+3.  **Set up environment variables:**
+    - Create a file named `.env.local` in the project root.
+    - Copy the contents from the [Frontend Environment Variables](#frontend-envlocal) section below and update the values if needed.
 
 ---
 
 ### ▶️ Running the Application
 
-Start backend server:
+You will need two separate terminals to run both the backend and frontend servers simultaneously.
 
-```bash
-cd backend
-source venv/bin/activate  # if not already activated
-python manage.py runserver
-```
+1.  **Start the Backend Server (from the `backend/` directory):**
+    ```bash
+    # Make sure your virtual environment is activated
+    python manage.py runserver
+    ```
+    The backend will be available at `http://127.0.0.1:8000`.
 
-Start frontend server:
-
-```bash
-cd frontend
-npm run dev  # or yarn/bun equivalent
-```
-
-Access the app:
-- Frontend: [http://localhost:5173](http://localhost:5173)
-- Backend API: [http://127.0.0.1:8000/api/](http://127.0.0.1:8000/api/)
-- Django Admin: [http://127.0.0.1:8000/admin/](http://127.0.0.1:8000/admin/)
-
----
-
-### 🛠️ Troubleshooting
-
-- **Ports Busy**? Try different ones using:  
-  `python manage.py runserver 8001`, `npm run dev -- --port 3001`
-- **CORS Issues**? Verify `CORS_ALLOWED_ORIGINS` in `settings.py` and `VITE_API_BASE_URL` in `.env`.
-- **Database Issues**? Rerun migrations or reset local DB (for development only).
-- **Dependency Errors**? Ensure correct versions are installed via `pip` and `npm`.
+2.  **Start the Frontend Server (from the project root directory):**
+    ```bash
+    npm run dev
+    ```
+    The frontend will be available at `http://localhost:8080`.
 
 ---
 
 ## 🔐 Environment Variables
 
 ### Backend (`backend/.env`)
-
 ```env
-SECRET_KEY=your_secret_key
+SECRET_KEY=your_django_secret_key_here
 DEBUG=True
 
-# Supabase DB
-DB_NAME=postgres
-DB_USER=postgres
+# Database Credentials (example for local development)
+DB_NAME=canteenflow
+DB_USER=your_db_user
 DB_PASSWORD=your_db_password
-DB_HOST=db.yourproject.supabase.co
+DB_HOST=localhost
 DB_PORT=5432
 
-# Razorpay
-RAZORPAY_KEY_ID=your_key_id
-RAZORPAY_KEY_SECRET=your_key_secret
-
-# Optional:
-# SUPABASE_URL=https://your-project.supabase.co
-# SUPABASE_KEY=your_service_key
-# SUPABASE_BUCKET=media
-
-# CORS & Host Settings
-ALLOWED_HOSTS=localhost,127.0.0.1
-CORS_ALLOWED_ORIGINS=http://localhost:5173
+# Razorpay API Keys
+RAZORPAY_KEY_ID=your_razorpay_key_id
+RAZORPAY_KEY_SECRET=your_razorpay_key_secret
 ```
 
-### Frontend (`frontend/.env` or `.env.local`)
-
+### Frontend (`.env.local`)
 ```env
+# URL of your backend API
 VITE_API_BASE_URL=http://127.0.0.1:8000/api
 
-# Optional:
-# VITE_SUPABASE_URL=https://your-project.supabase.co
-# VITE_SUPABASE_ANON_KEY=your_anon_key
+# Your public Razorpay Key ID for the frontend
+VITE_RAZORPAY_KEY_ID=your_razorpay_key_id
 ```
 
-> ⚠️ Never expose secrets like `SUPABASE_KEY` in frontend `.env`.
-
----
-
-## 🔗 API Overview
-
-> 📌 *Coming soon: Detailed endpoint documentation with Swagger/OpenAPI.*
+> **Note:** For production, `DEBUG` should be `False` and you should update the `DB_*` variables to point to your production database (e.g., Supabase).
 
 ---
 
 ## 🚢 Deployment
 
-- **Database/Auth**: Supabase (PostgreSQL)
-- **Storage**: Supabase Storage
+- **Database**: Supabase (PostgreSQL) is recommended for production.
 - **Backend (Django)**:
-  - Deploy via Render, Railway, or Heroku
-  - Use Gunicorn for production
-  - Set `DEBUG=False`, `ALLOWED_HOSTS`, `CORS_ALLOWED_ORIGINS`
+  - Deploy to a platform like Render or Heroku.
+  - Use a production-grade web server like Gunicorn.
+  - Ensure production environment variables are set correctly (`DEBUG=False`, `SECRET_KEY`, database credentials).
 - **Frontend (React/Vite)**:
-  - Build: `npm run build`
-  - Deploy `dist/` to Vercel, Netlify, or GitHub Pages
-  - Ensure `VITE_API_BASE_URL` points to live backend
+  - Deployed on **Vercel**.
+  - The `VITE_API_BASE_URL` must be updated to point to the live backend URL.
 
 ---
 
 ## 🤝 Contributing
-
-We welcome contributions! To get started:
-
-1. Fork the repo
-2. Create a new branch (`git checkout -b feature-x`)
-3. Make changes
-4. Submit a Pull Request
+Contributions are welcome! Please feel free to open an issue or submit a pull request.
 
 ---
 
 ## 📄 License
-
-This project is licensed under the [MIT License](https://opensource.org/licenses/MIT).
-
----
-
-> 💡 Built with love to make campus dining smoother, faster, and smarter!
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
