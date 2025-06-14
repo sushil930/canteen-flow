@@ -3,8 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, CheckCircle, Loader2, CreditCard } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRazorpay, RazorpayOrderOptions } from 'react-razorpay'; 
-import { OrderContext, OrderItem as ContextOrderItem } from '@/contexts/OrderContext';
-import { useAuth } from '@/contexts/AuthContext';
+import { OrderContext } from '@/contexts/OrderContext';
 import { apiClient } from '@/lib/api';
 import { useToast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
@@ -13,6 +12,15 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Separator } from "@/components/ui/separator";
 import { formatCurrency } from '@/lib/utils';
 import Header from '@/components/Header';
+import { useAuth } from '@/contexts/AuthContext';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogFooter,
+} from '@/components/ui/dialog';
 
 // Define structure for backend verification payload
 interface VerifyPaymentPayload {
@@ -39,7 +47,6 @@ interface CreateRazorpayOrderResponse {
   order_id: string;
 }
 
-
 const Payment = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -48,13 +55,12 @@ const Payment = () => {
   const { Razorpay: RazorpayCheckout, isLoading: isRazorpayLoading, error: razorpayHookError } = useRazorpay(); 
   const queryClient = useQueryClient();
   const [orderNotes, setOrderNotes] = useState('');
+  const [showGuestDialog, setShowGuestDialog] = useState(false);
   const razorpayKeyId = import.meta.env.VITE_RAZORPAY_KEY_ID;
 
-  // --- Mutations (createRazorpayOrderMutation, verifyPaymentMutation) remain the same --- 
   const createRazorpayOrderMutation = useMutation<CreateRazorpayOrderResponse, Error, { amount: number }>({ 
     mutationFn: async ({ amount }) => {
         if (isGuest) {
-            // Mock creating a Razorpay order for guests
             toast({ title: "Guest Mode", description: "Simulating payment initiation..." });
             return Promise.resolve({ order_id: `guest_order_${Date.now()}` });
         }
@@ -72,7 +78,6 @@ const Payment = () => {
   const verifyPaymentMutation = useMutation<VerifyPaymentResponse, Error, VerifyPaymentPayload>({ 
     mutationFn: async (paymentData) => {
         if (isGuest) {
-            // Mock payment verification for guests
             toast({ title: "Guest Mode", description: "Simulating payment verification..." });
             const mockOrderId = Math.floor(Math.random() * 100000);
             return Promise.resolve({ success: true, orderId: mockOrderId });
@@ -99,7 +104,6 @@ const Payment = () => {
     }
   });
 
-  // --- Payment Success Handler (using useCallback) ---
   const handlePaymentSuccess = useCallback((response: any) => {
     const totalAmount = getTotalPrice(); 
     const localOrderDetails = {
@@ -119,7 +123,6 @@ const Payment = () => {
 
    const handlePaymentError = useCallback((error: any) => {
     console.error("Razorpay Payment Failed:", error);
-    // Check if error.error exists (Razorpay's detailed error structure)
     const description = error.error && error.error.description 
         ? error.error.description 
         : (error.reason || 'An error occurred during payment.');
@@ -133,24 +136,9 @@ const Payment = () => {
     });
   }, [toast]); 
 
-  // --- MODIFIED: Handle Initiate Payment function ---
   const handlePayment = async () => {
     if (isGuest) {
-        // Simulate the entire payment flow for guests
-        const totalAmount = getTotalPrice();
-        const mockPaymentData: VerifyPaymentPayload = {
-            razorpay_payment_id: `guest_payment_${Date.now()}`,
-            razorpay_order_id: `guest_order_${Date.now()}`,
-            razorpay_signature: 'guest_signature',
-            local_order_details: {
-                canteen: selectedCanteenId,
-                table_number: tableNumber,
-                items: items.map(item => ({ menu_item_id: item.menuItemId, quantity: item.quantity })),
-                total_price: totalAmount,
-                notes: orderNotes,
-            }
-        };
-        verifyPaymentMutation.mutate(mockPaymentData);
+        setShowGuestDialog(true);
         return;
     }
     if (isRazorpayLoading) {
@@ -232,7 +220,24 @@ const Payment = () => {
     }
   };
 
-  // Calculate processing state for backend calls
+  const handleGuestContinue = () => {
+    const totalAmount = getTotalPrice();
+    const mockPaymentData: VerifyPaymentPayload = {
+        razorpay_payment_id: `guest_payment_${Date.now()}`,
+        razorpay_order_id: `guest_order_${Date.now()}`,
+        razorpay_signature: 'guest_signature',
+        local_order_details: {
+            canteen: selectedCanteenId,
+            table_number: tableNumber,
+            items: items.map(item => ({ menu_item_id: item.menuItemId, quantity: item.quantity })),
+            total_price: totalAmount,
+            notes: orderNotes,
+        }
+    };
+    verifyPaymentMutation.mutate(mockPaymentData);
+    setShowGuestDialog(false);
+  };
+
   const isProcessingBackend = createRazorpayOrderMutation.isPending || verifyPaymentMutation.isPending;
 
   if (items.length === 0 && !isProcessingBackend) {
@@ -247,7 +252,6 @@ const Payment = () => {
 
   const totalPrice = getTotalPrice();
 
-  // Determine button content and disabled state
   let paymentButtonContent: React.ReactNode;
   const isButtonDisabled = 
     isProcessingBackend || 
@@ -278,7 +282,6 @@ const Payment = () => {
             <CardDescription>Review your order and proceed to payment.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Order Summary Section */}
             <div className="space-y-3">
               <h3 className="font-semibold">Order Summary</h3>
               {items.map((item) => (
@@ -302,7 +305,6 @@ const Payment = () => {
 
             <Separator />
 
-            {/* Order Notes Section */}
             <div className="space-y-2">
               <label htmlFor="orderNotes" className="font-semibold">Order Notes (Optional)</label>
               <Textarea
@@ -314,18 +316,15 @@ const Payment = () => {
               />
             </div>
           </CardContent>
-          {/* Updated CardFooter */}
           <CardFooter className="flex flex-col gap-4">
-             {/* Back Button */} 
             <Button 
                 variant="outline" 
                 className="w-full" 
-                onClick={() => navigate('/menu')} // Navigate to menu instead
-                disabled={isProcessingBackend || isRazorpayLoading} // Also disable back if gateway is loading
+                onClick={() => navigate('/menu')}
+                disabled={isProcessingBackend || isRazorpayLoading}
             >
                 <ArrowLeft className="mr-2 h-4 w-4" /> Back to Menu
             </Button>
-            {/* Payment Button */}
             <Button
               className="w-full flex items-center justify-center gap-2"
               size="lg"
@@ -343,6 +342,21 @@ const Payment = () => {
           </CardFooter>
         </Card>
       </main>
+
+        <Dialog open={showGuestDialog} onOpenChange={setShowGuestDialog}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Guest Mode</DialogTitle>
+                    <DialogDescription>
+                        Payment processing is skipped in guest mode. Your order will be simulated.
+                    </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                    <Button onClick={handleGuestContinue}>Continue</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
     </div>
   );
 };

@@ -81,7 +81,7 @@ const Header: React.FC = () => {
   return (
     <header 
       className={cn(
-        "sticky top-0 z-50 w-full border-b transition-all duration-200",
+        "sticky top-0 z-50 w-full transition-all duration-200 md:border-b",
         scrolled 
           ? "bg-background/95 backdrop-blur-md shadow-sm" 
           : "bg-background/70 backdrop-blur-sm"
