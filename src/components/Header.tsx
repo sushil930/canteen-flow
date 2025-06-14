@@ -39,6 +39,8 @@ const Header: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   
+  const isLandingPage = location.pathname === '/';
+
   // Track scroll position to add background on scroll
   useEffect(() => {
     const handleScroll = () => {
@@ -102,7 +104,7 @@ const Header: React.FC = () => {
         {/* User Actions and Cart */}
         <div className="flex items-center justify-end space-x-1 md:space-x-2">
           {/* Cart Button */}
-          {!isAuthPage && (
+          {!isAuthPage && !isLandingPage && (
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -193,14 +195,16 @@ const Header: React.FC = () => {
                   <span className="hidden sm:inline">Login</span>
                 </Button>
               </Link>
-              <Link to="/register">
-                <Button 
-                  size="sm" 
-                  className="gap-2 hidden sm:flex bg-[#ff6433] hover:bg-[#e55a2e] transition-colors"
-                >
-                  <span>Register</span>
-                </Button>
-              </Link>
+              {!isLandingPage && (
+                <Link to="/register">
+                  <Button 
+                    size="sm" 
+                    className="gap-2 hidden sm:flex bg-[#ff6433] hover:bg-[#e55a2e] transition-colors"
+                  >
+                    <span>Register</span>
+                  </Button>
+                </Link>
+              )}
             </div>
           ) : null}
 
